@@ -70,3 +70,29 @@ class User(db.Model, AddUpdateDelete):
 
     def __init__(self, username):
         self.username = username
+
+
+class DisableTokens(db.Model):
+    """
+    Class to create a table to store logged out tokens
+    """
+    __tablename__ = 'disable_tokens'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    token = db.Column(db.String(500), unique=True, nullable=False)
+    blacklisted_on = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, token):
+        self.token = token
+        self.blacklisted_on = datetime.datetime.now()
+
+    def __repr__(self):
+        return '<id: token: {}'.format(self.token)
+
+    @staticmethod
+    def check_blacklist(token):
+        res = DisableTokens.query.filter_by(token=token).first()
+        if res:
+            return True
+        else:
+            return False
