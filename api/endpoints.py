@@ -5,7 +5,7 @@ import datetime
 from flask import Blueprint, request, jsonify, make_response
 from flask_restful import Api, Resource
 
-from models import db, User, DisableTokens
+from models import db, User, Category,Recipe, DisableTokens
 from serializers import UserSchema, CategorySchema, RecipeSchema
 from sqlalchemy.exc import SQLAlchemyError
 
