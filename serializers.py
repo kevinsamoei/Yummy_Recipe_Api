@@ -27,3 +27,35 @@ class CategorySchema(ma.Schema):
     url = ma.URLFor('api.categoryresource', id='<id>', _external=True)
     recipes = fields.Nested('RecipeSchema', many=True,
                             exclude=('category',))
+
+
+class RecipeSchema(ma.Schema):
+    """
+    Schemas used to validate, serialize and deserialize recipe model
+    """
+    id = fields.Integer(dump_only=True)
+    title = fields.String(required=True, validate=validate.Length(1))
+    body = fields.String(required=True, validate=validate.Length(3))
+    # created_timestamp = fields.Integer(default=datetime.datetime.now())
+    # modified_timestamp = fields.Integer(default=datetime.datetime.now())
+    user_id = fields.Integer(dump_only=True)
+    category = fields.Nested(CategorySchema, only=['id', 'url', 'name'],
+                             required=True)
+    url = ma.URLFor('api.reciperesource', id='<id>', _external=True)
+
+    @pre_load
+    def process_category(self, data):
+        """
+        Method to process the serialized data
+        """
+        category = data.get('category')
+        if category:
+            if isinstance(category, dict):
+                category_name = category.get('name')
+            else:
+                category_name = category
+            category_dict = dict(name=category_name)
+        else:
+            category_dict = {}
+        data['category'] = category_dict
+        return data

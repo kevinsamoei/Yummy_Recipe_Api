@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify, make_response
 from flask_restful import Api, Resource
 
 from models import db, User, DisableTokens
-from serializers import UserSchema, CategorySchema
+from serializers import UserSchema, CategorySchema, RecipeSchema
 from sqlalchemy.exc import SQLAlchemyError
 
 from api import status
@@ -15,6 +15,7 @@ from .auth import token_required
 
 api_bp = Blueprint('api', __name__)
 category_schema = CategorySchema()
+recipe_schema = RecipeSchema()
 user_schema = UserSchema()
 api = Api(api_bp)
 
@@ -492,6 +493,269 @@ class CategoryListResource(Resource):
             resp = jsonify({"error": str(e)})
             return resp, status.HTTP_400_BAD_REQUEST
 
+
+
+class RecipeResource(Resource):
+    """
+    Resource for the recipe endpoints
+    """
+    @token_required
+    def get(current_user, self, id):
+        """
+        Get a recipe with the specified id
+        ---
+        tags:
+          - recipes
+        parameters:
+          - in: path
+            name: id
+            required: true
+            description: The ID of the recipe to retrieve
+            type: string
+        security:
+           - TokenParam: []
+           - TokenHeader: []
+        responses:
+          200:
+            description: A sing recipe
+            schema:
+              id: recipe
+              properties:
+                title:
+                  type: string
+                  default: Meat soup
+                body:
+                  type: string
+                  default: This is the process of making meat soup
+        """
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        recipe = Recipe.query.get_or_404(id)
+        result = recipe_schema.dump(recipe).data
+        return result
+
+    @token_required
+    def put(current_user, self, id):
+        """
+                      Edit and update a recipe with the specified id
+                      ---
+                      tags:
+                        - recipes
+                      parameters:
+                        - in: path
+                          name: id
+                          required: true
+                          description: The ID of the recipe to edit
+                          type: string
+                        - in: body
+                          name: recipe
+                          required: true
+                          description: The title and body of the recipe
+                          type: string
+                      security:
+                         - TokenParam: []
+                         - TokenHeader: []
+                      responses:
+                        200:
+                          description: A single recipe successfully edited
+                          schema:
+                            id: category
+                            properties:
+                                title:
+                                    type: string
+                                    default: soup
+                                body:
+                                    type: string
+                                    default: Pour, mix, cook
+                      """
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        recipe = Recipe.query.get_or_404(id)
+        recipe_dict = request.get_json(force=True)
+        if 'title' in recipe_dict:
+            recipe_title = recipe_dict['title']
+            if Recipe.is_unique(id=id, title=recipe_title):
+                recipe.title = recipe_title
+            else:
+                response = {'error': 'A recipe with the same title already exists'}
+                return response, status.HTTP_400_BAD_REQUEST
+        if 'body' in recipe_dict:
+            recipe.body = recipe_dict['body']
+
+        dumped_recipe, dumped_errors = recipe_schema.dump(recipe)
+        if dumped_errors:
+            return dumped_errors, status.HTTP_400_BAD_REQUEST
+        try:
+            recipe.update()
+            return self.get(id)
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            resp = jsonify({"error": str(e)})
+            return resp, status.HTTP_400_BAD_REQUEST
+
+    @token_required
+    def delete(current_user, self, id):
+        """
+                        Delete a recipe with the specified id
+                        ---
+                        tags:
+                          - recipes
+                        parameters:
+                          - in: path
+                            name: id
+                            required: true
+                            description: The ID of the recipe to delete
+                            type: string
+                        security:
+                           - TokenParam: []
+                           - TokenHeader: []
+                        responses:
+                          200:
+                            description: A single recipe successfully deleted
+                        """
+
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        recipe = Recipe.query.get_or_404(id)
+        try:
+            delete = recipe.delete(recipe)
+            response = make_response(jsonify({"Message": "Deleted"}), 200)
+            return response, status.HTTP_204_NO_CONTENT
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            resp = jsonify({"error": str(e)})
+            return resp, status.HTTP_401_UNAUTHORIZED
+
+
+class RecipeListResource(Resource):
+    """
+    This class describes the object to retrieve a collection of recipes
+    """
+    @token_required
+    def get(current_user, self):
+        """
+        Get a list of recipes
+            A paginated list of recipes
+        ---
+        tags:
+          - recipes
+        security:
+           - TokenParam: []
+           - TokenHeader: []
+        responses:
+          200:
+            description: A list of recipes
+            schema:
+              id: Recipes
+              properties:
+                title:
+                  type: json
+                  default: Soup
+                body:
+                  type: json
+                  default: Prepare it
+        """
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        pagination_helper = PaginationHelper(
+            request,
+            query=Recipe.query.filter(Recipe.user_id == current_user.id),
+            resource_for_url='api.recipelistresource',
+            key_name='results',
+            schema=recipe_schema
+        )
+        search = request.args.get('q')
+
+        if search:
+            search.strip()
+            recipes = PaginationHelper(
+                request,
+                query=Recipe.query.filter(
+                    Recipe.user_id == current_user.id,
+                    (Recipe.title.contains(search)) |
+                    (Recipe.body.contains(search))),
+                resource_for_url='api.recipelistresource',
+                key_name='results',
+                schema=recipe_schema
+            )
+            results = recipes.paginate_query()
+            if len(results['results']) <= 0:
+                return jsonify({"Errror": "No recipes. Create a recipe!"})
+            return results
+        result = pagination_helper.paginate_query()
+        if len(result['results']) <= 0:
+            return jsonify({"Errror": "No recipes. Create a recipe!"})
+        return result
+
+    @token_required
+    def post(current_user, self):
+        """
+        Create a recipe
+        ---
+        tags:
+          - recipes
+        parameters:
+          - in: body
+            name: recipe
+            required: true
+            description: The title of the recipe
+            type: string
+        security:
+           - TokenParam: []
+           - TokenHeader: []
+        responses:
+          200:
+            description: Create a recipe
+            schema:
+              id: recipe
+              properties:
+                title:
+                  type: string
+                  default: Meat soup
+                body:
+                  type: string
+                  default: This is the process of making meat soup
+        """
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        request_dict = request.get_json()
+
+        if not request_dict:
+            response = {"Message": "No output data provided"}
+            return response, status.HTTP_400_BAD_REQUEST
+        errors = recipe_schema.validate(request_dict)
+        if errors:
+            return errors, status.HTTP_400_BAD_REQUEST
+        recipe_title = request_dict['title']
+        if not Recipe.is_unique(id=0, title=recipe_title):
+            response = {'error': 'A recipe with the same title already exists'}
+            return response, status.HTTP_400_BAD_REQUEST
+        try:
+            category_name = request_dict['category']['name']
+            category = Category.query.filter_by(name=category_name).first()
+            if category is None:
+                category = Category(name=category_name, user_id=current_user.id)
+                db.session.add(category)
+            recipe = Recipe(
+                title=recipe_title,
+                body=request_dict['body'],
+                category=category,
+                user=current_user
+            )
+            recipe.add(recipe)
+            query = Recipe.query.get(recipe.id)
+            result = recipe_schema.dump(query).data
+            return result, status.HTTP_201_CREATED
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            resp = jsonify({"error": str(e)})
+            return resp, status.HTTP_400_BAD_REQUEST
+
 api.add_resource(UserListResource, '/auth/users/')
 api.add_resource(UserResource, '/auth/users/<int:id>')
 api.add_resource(RegisterUser, '/auth/register/')
@@ -499,3 +763,5 @@ api.add_resource(LoginUser, '/auth/login/')
 api.add_resource(LogoutUser, '/auth/logout/')
 api.add_resource(CategoryListResource, '/categories/')
 api.add_resource(CategoryResource, '/categories/<int:id>')
+api.add_resource(RecipeListResource, '/recipes/')
+api.add_resource(RecipeResource, '/recipes/<int:id>')

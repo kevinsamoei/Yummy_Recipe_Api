@@ -98,6 +98,41 @@ class Category(db.Model, AddUpdateDelete):
                 return False
 
 
+class Recipe(db.Model, AddUpdateDelete):
+    """
+    Model to define the recipe object
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    body = db.Column(db.String(500))
+    created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
+    modified_timestamp = db.Column(db.DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id', ondelete='CASCADE'))
+    category = db.relationship('Category', backref=db.backref('recipes',
+                                                              lazy='dynamic', order_by='Recipe.title'))
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    def __init__(self, title, body, category, user):
+        self.title = title
+        self.body = body
+        self.category = category
+        self.user = user
+
+    @classmethod
+    def is_unique(cls, id, title):
+        """
+        Ensure the recipe to be created will be unique
+        """
+        existing_recipe = cls.query.filter_by(title=title).first()
+        if existing_recipe is None:
+            return True
+        else:
+            if existing_recipe.id == id:
+                return True
+            else:
+                return False
+
+
 class DisableTokens(db.Model):
     """
     Class to create a table to store logged out tokens
