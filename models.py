@@ -71,6 +71,32 @@ class User(db.Model, AddUpdateDelete):
     def __init__(self, username):
         self.username = username
 
+class Category(db.Model, AddUpdateDelete):
+    """
+    Model to define the category object
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    def __init__(self, name, user_id):
+        self.name = name
+        self.user_id = user_id
+
+    @classmethod
+    def is_unique(cls, id, name):
+        """
+        Ensure that a category to be created is unique
+        """
+        existing_category = cls.query.filter_by(name=name).first()
+        if existing_category is None:
+            return True
+        else:
+            if existing_category.id == id:
+                return True
+            else:
+                return False
+
 
 class DisableTokens(db.Model):
     """
