@@ -1,7 +1,6 @@
 # coding=utf-8
 from flask import Flask
 from flasgger import Swagger
-from api.auth import token_required
 
 def create_app(config_filename):
     app = Flask(__name__)

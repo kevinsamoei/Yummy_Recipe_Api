@@ -150,46 +150,40 @@ class LoginUser(Resource):
         ---
         tags:
           - auth
-        security:
-          - basicAuth: []
+        parameters:
+          - in: body
+            name: body
+            required: true
+            description: The user's details
+            type: string
+            schema:
+              id: user
+              properties:
+                username:
+                  type: string
+                  default: kevin
+                password:
+                  type: string
+                  default: P@ssword1
         responses:
           200:
             description: A token for the user
 
                 """
-        # auth = request.get_json()
-        # try:
-        #     if not auth or not auth['username'] or not auth['password']:
-        #         return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-        # except KeyError as e:
-        #     response = jsonify({"error": str(e)})
-        #     return response
-        #
-        # user = User.query.filter_by(username=auth['username']).first()
-        #
-        # if not user:
-        #     return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-        #
-        # if user.verify_password(auth['password']):
-        #     token = jwt.encode(
-        #         {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
-        #         'topsecret')
-        #
-        #     return jsonify({"token": token.decode('UTF-8')})
-        #
-        # return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+        auth = request.get_json()
+        try:
+            if not auth or not auth['username'] or not auth['password']:
+                return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+        except KeyError as e:
+            response = jsonify({"error": str(e)})
+            return response
 
-        auth = request.authorization
-
-        if not auth or not auth.username or not auth.password:
-            return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-
-        user = User.query.filter_by(username=auth.username).first()
+        user = User.query.filter_by(username=auth['username']).first()
 
         if not user:
             return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
 
-        if user.verify_password(auth.password):
+        if user.verify_password(auth['password']):
             token = jwt.encode(
                 {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
                 'topsecret')
@@ -197,6 +191,25 @@ class LoginUser(Resource):
             return jsonify({"token": token.decode('UTF-8')})
 
         return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+
+        # auth = request.authorization
+        #
+        # if not auth or not auth.username or not auth.password:
+        #     return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+        #
+        # user = User.query.filter_by(username=auth.username).first()
+        #
+        # if not user:
+        #     return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+        #
+        # if user.verify_password(auth.password):
+        #     token = jwt.encode(
+        #         {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
+        #         'topsecret')
+        #
+        #     return jsonify({"token": token.decode('UTF-8')})
+        #
+        # return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
 
 
 class LogoutUser(Resource):
@@ -266,7 +279,6 @@ class CategoryResource(Resource):
             description: The ID of the category to retrieve
             type: string
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -478,6 +490,7 @@ class CategoryListResource(Resource):
         errors = category_schema.validate(request_dict)
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
+
         category_name = request_dict['name']
         if not Category.is_unique(id=0, name=category_name):
             response = {"error": "A category with the same name already exists"}
@@ -688,7 +701,7 @@ class RecipeListResource(Resource):
             return results
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
-            return jsonify({"Errror": "No recipes. Create a recipe!"})
+            return jsonify({"Error": "No recipes. Create a recipe!"})
         return result
 
     @token_required
@@ -750,7 +763,8 @@ class RecipeListResource(Resource):
             recipe.add(recipe)
             query = Recipe.query.get(recipe.id)
             result = recipe_schema.dump(query).data
-            return result, status.HTTP_201_CREATED
+
+            return make_response(jsonify(result), status.HTTP_201_CREATED)
         except SQLAlchemyError as e:
             db.session.rollback()
             resp = jsonify({"error": str(e)})
