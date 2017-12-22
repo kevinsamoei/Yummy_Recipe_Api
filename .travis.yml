@@ -16,7 +16,7 @@ before_script:
  - psql -c 'create database recipe;' -U postgres
 # Test Script
 script:
-  -  nosetests --with-coverage --cover-tests --cover-erase --cover-package=api
+  - nosetests --with-coverage --cover-tests --cover-erase --cover-package=api
 
 # Coveralls reporting
 after_success:
