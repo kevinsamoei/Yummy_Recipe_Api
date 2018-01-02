@@ -98,6 +98,15 @@ class Category(db.Model, AddUpdateDelete):
             else:
                 return False
 
+    @classmethod
+    def validate_category(cls, name):
+        """
+        :param name:
+        :return: True if pattern is matched otherwise return false
+        """
+        if re.search(r'[A-Za-z0-9]+$', name) is None:
+            return "Not a valid name for a category", False
+
 
 class Recipe(db.Model, AddUpdateDelete):
     """
@@ -132,6 +141,24 @@ class Recipe(db.Model, AddUpdateDelete):
                 return True
             else:
                 return False
+
+    @classmethod
+    def validate_recipe_title(cls, title):
+        """
+        :param title:
+        :return: True if pattern is matched otherwise return false
+        """
+        if re.search(r'[A-Za-z0-9]+$', title) is None:
+            return "Not a valid name for a recipe", False
+
+    @classmethod
+    def validate_recipe_body(cls, body):
+        """
+        :param body:
+        :return: True if pattern is matched otherwise return false
+        """
+        if re.search(r'[A-Za-z0-9]+$', body) is None:
+            return "Not a valid name for a recipe", False
 
 
 class DisableTokens(db.Model):

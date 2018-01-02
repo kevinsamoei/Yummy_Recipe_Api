@@ -134,7 +134,7 @@ class RegisterUser(Resource):
         try:
             user = User(username=username)
             error_message, password_ok = \
-            user.check_password_strength_and_hash_if_ok(request_dict['password'])
+                user.check_password_strength_and_hash_if_ok(request_dict['password'])
             if password_ok:
                 user.add(user)
                 query = User.query.get(user.id)
@@ -515,10 +515,13 @@ class CategoryListResource(Resource):
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
 
-        category_name = request_dict['name']
+        category_name = request_dict['name'].title()
         if not Category.is_unique(id=0, name=category_name):
             response = {"error": "A category with the same name already exists"}
             return response, status.HTTP_400_BAD_REQUEST
+        validated_name = Category.validate_category(name=category_name)
+        if validated_name:
+            return {"Error": "Category name is not valid"}
         try:
             category = Category(category_name, user_id=current_user.id)
             category.add(category)
@@ -796,19 +799,29 @@ class RecipeListResource(Resource):
         errors = recipe_schema.validate(request_dict)
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
-        recipe_title = request_dict['title']
+        recipe_title = request_dict['title'].title()
+        recipe_body = request_dict['body']
         if not Recipe.is_unique(id=0, title=recipe_title):
             response = {'error': 'A recipe with the same title already exists'}
             return response, status.HTTP_400_BAD_REQUEST
+        validated_title = Recipe.validate_recipe_title(title=recipe_title)
+        if validated_title:
+            return {"Error": "Recipe title is not valid"}
+        validated_body = Recipe.validate_recipe_body(body=recipe_body)
+        if validated_body:
+            return {"Error": "Recipe body is not valid"}
         try:
             category_name = request_dict['category']['name']
+            validate_category = Category.validate_category(name=category_name)
+            if validate_category:
+                return {"Error": "Not a valid category name"}
             category = Category.query.filter_by(name=category_name).first()
             if category is None:
                 category = Category(name=category_name, user_id=current_user.id)
                 db.session.add(category)
             recipe = Recipe(
                 title=recipe_title,
-                body=request_dict['body'],
+                body=recipe_body,
                 category=category,
                 user=current_user
             )

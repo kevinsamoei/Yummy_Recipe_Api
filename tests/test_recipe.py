@@ -119,7 +119,7 @@ class RecipeCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_recipe_title = 'Recipe world'
+        new_recipe_title = 'Recipe World'
         new_recipe_body = 'This is the beginning of your hunger-free life'
         new_recipe_category = 'Soup'
         post_response = self.create_recipe(new_recipe_title,
@@ -169,7 +169,7 @@ class RecipeCase(unittest.TestCase):
         )
         res = json.loads(get_first_page_response_1.data.decode())
         self.assertEqual(res, {"Error": "No recipes. Create a recipe!"})
-        new_recipe_title1 = 'Recipe world'
+        new_recipe_title1 = 'Recipe World'
         new_recipe_body1 = 'This is the beginning of your hunger-free life'
         new_recipe_category1 = 'Soup'
         post_response = self.create_recipe(new_recipe_title1,
@@ -178,7 +178,7 @@ class RecipeCase(unittest.TestCase):
         self.assertEqual(post_response.status_code,
                          status.HTTP_201_CREATED)
         self.assertEqual(Recipe.query.count(), 1)
-        new_recipe_title2 = 'Meat soup'
+        new_recipe_title2 = 'Meat Soup'
         new_recipe_body2 = 'This is the beginning of your hunger-free life'
         new_recipe_category2 = 'Breakfast'
         post_response = self.create_recipe(new_recipe_title2,
