@@ -25,7 +25,7 @@ class UserResource(Resource):
     Class to create the user resource endpoints
     """
     @token_required
-    def get( self,current_user, id):
+    def get(current_user, self, id):
         """
         Get a user with the specified Id
         Retrieves a paginated result set of users.
@@ -51,8 +51,8 @@ class UserResource(Resource):
                   default: kevin
 
                 """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         user = User.query.get_or_404(id)
         result = user_schema.dump(user).data
@@ -68,8 +68,8 @@ class UserListResource(Resource):
         """
         Get a list of all users
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -234,7 +234,7 @@ class LogoutUser(Resource):
     Defines methods for the Logout Resource
     """
     @token_required
-    def post(self, current_user):
+    def post(current_user, self):
         """
                 Logout a user
                 ---
@@ -247,8 +247,8 @@ class LogoutUser(Resource):
                     description: A user has been successfully logged out
 
                         """
-        # if not current_user.id:
-        #     return jsonify({"Message": "Can not perform that operation. Please log in!"})
+        if not current_user.id:
+            return jsonify({"Message": "Can not perform that operation. Please log in!"})
         # Get the auth token
         token = request.headers['x-access-token']
         if token:
@@ -306,8 +306,8 @@ class CategoryResource(Resource):
                   type: string
                   default: soup
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         if category.user_id == current_user.id:
@@ -352,8 +352,8 @@ class CategoryResource(Resource):
                                     type: string
                                     default: soup
                       """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         category_dict = request.get_json()
@@ -398,8 +398,8 @@ class CategoryResource(Resource):
                     description: A single category successfully deleted
                 """
 
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         try:
@@ -436,8 +436,8 @@ class CategoryListResource(Resource):
                   type: json
                   default: Soup
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -504,8 +504,8 @@ class CategoryListResource(Resource):
                   type: string
                   default: soup
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
         if not request_dict:
@@ -619,8 +619,8 @@ class RecipeResource(Resource):
                                   type: string
                                   default: Soup
                       """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.get_or_404(id)
         recipe_dict = request.get_json(force=True)
@@ -665,8 +665,8 @@ class RecipeResource(Resource):
                             description: A single recipe successfully deleted
                         """
 
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.get_or_404(id)
         try:
@@ -684,7 +684,7 @@ class RecipeListResource(Resource):
     This class describes the object to retrieve a collection of recipes
     """
     @token_required
-    def get(self, current_user):
+    def get(current_user, self):
         """
         Get a list of recipes
             A paginated list of recipes
@@ -709,8 +709,8 @@ class RecipeListResource(Resource):
                   type: json
                   default: Soup
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -785,8 +785,8 @@ class RecipeListResource(Resource):
                   type: string
                   default: Soup
         """
-        # if not current_user.id:
-        #     return make_response(jsonify({'message': 'Can not perform that function'}))
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
 
