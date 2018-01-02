@@ -2,13 +2,10 @@
 from flask import Flask
 from flasgger import Swagger
 
+
 def create_app(config_filename):
     app = Flask(__name__)
     app.config.from_object(config_filename)
-    app.config["Swagger"] = {
-        "title": "Yummy Recipe App",
-        "uiversion": 2,
-    }
     swag = Swagger(app,
                    template={
                        "swagger": "2.0",
@@ -27,7 +24,7 @@ def create_app(config_filename):
                                "name": "x-access-token",
                                "in": "header"
                            },
-                           'basicAuth': {'type': 'basic'}
+                           # 'basicAuth': {'type': 'basic'}
                        },
                        "consumes": [
                            "application/json",

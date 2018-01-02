@@ -71,6 +71,7 @@ class User(db.Model, AddUpdateDelete):
     def __init__(self, username):
         self.username = username
 
+
 class Category(db.Model, AddUpdateDelete):
     """
     Model to define the category object

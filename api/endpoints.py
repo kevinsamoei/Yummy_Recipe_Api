@@ -25,7 +25,7 @@ class UserResource(Resource):
     Class to create the user resource endpoints
     """
     @token_required
-    def get(current_user, self, id):
+    def get( self,current_user, id):
         """
         Get a user with the specified Id
         Retrieves a paginated result set of users.
@@ -39,7 +39,6 @@ class UserResource(Resource):
             description: The ID of a single user
             type: string
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -52,8 +51,8 @@ class UserResource(Resource):
                   default: kevin
 
                 """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         user = User.query.get_or_404(id)
         result = user_schema.dump(user).data
@@ -69,8 +68,8 @@ class UserListResource(Resource):
         """
         Get a list of all users
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -98,6 +97,15 @@ class RegisterUser(Resource):
             name: body
             required: true
             description: User's name and password
+            schema:
+              id: user
+              properties:
+                username:
+                  type: string
+                  default: kevin
+                password:
+                  type: string
+                  default: P@ssword1
         responses:
           200:
             description: A registered user
@@ -168,6 +176,15 @@ class LoginUser(Resource):
         responses:
           200:
             description: A token for the user
+            schema:
+              id: user
+              properties:
+                username:
+                  type: string
+                  default: kevin
+                password:
+                  type: string
+                  default: P@ssword1
 
                 """
         auth = request.get_json()
@@ -217,22 +234,21 @@ class LogoutUser(Resource):
     Defines methods for the Logout Resource
     """
     @token_required
-    def post(current_user, self):
+    def post(self, current_user):
         """
                 Logout a user
                 ---
                 tags:
                   - auth
                 security:
-                    - TokenParam: []
                     - TokenHeader: []
                 responses:
                   200:
                     description: A user has been successfully logged out
 
                         """
-        if not current_user.id:
-            return jsonify({"Message": "Can not perform that operation. Please log in!"})
+        # if not current_user.id:
+        #     return jsonify({"Message": "Can not perform that operation. Please log in!"})
         # Get the auth token
         token = request.headers['x-access-token']
         if token:
@@ -254,7 +270,7 @@ class ResetPassword(Resource):
     """
     Resource to reset a user's password
     """
-    def post(self):
+    def post(self, id):
         """
         Reset password
         """
@@ -290,8 +306,8 @@ class CategoryResource(Resource):
                   type: string
                   default: soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         if category.user_id == current_user.id:
@@ -318,8 +334,13 @@ class CategoryResource(Resource):
                           required: true
                           description: The name of the category
                           type: string
+                          schema:
+                            id: category
+                            properties:
+                                name:
+                                    type: string
+                                    default: soup
                       security:
-                         - TokenParam: []
                          - TokenHeader: []
                       responses:
                         200:
@@ -331,8 +352,8 @@ class CategoryResource(Resource):
                                     type: string
                                     default: soup
                       """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         category_dict = request.get_json()
@@ -371,21 +392,20 @@ class CategoryResource(Resource):
                     description: The ID of the category to retrieve
                     type: string
                 security:
-                   - TokenParam: []
                    - TokenHeader: []
                 responses:
                   200:
                     description: A single category successfully deleted
                 """
 
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         category = Category.query.get_or_404(id)
         try:
             category.delete(category)
-            response = jsonify({"message": "successfully deleted"})
-            return response, status.HTTP_204_NO_CONTENT
+            response = make_response(jsonify({"message": "successfully deleted"}), status.HTTP_200_OK)
+            return response
         except SQLAlchemyError as e:
             db.session.rollback()
             resp = jsonify({"error": str(e)})
@@ -405,7 +425,6 @@ class CategoryListResource(Resource):
         tags:
           - categories
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -417,8 +436,8 @@ class CategoryListResource(Resource):
                   type: json
                   default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -465,10 +484,15 @@ class CategoryListResource(Resource):
           - in: body
             name: category
             required: true
-            description: The name of the recipe
+            description: The name of the category
             type: string
+            schema:
+              id: category
+              properties:
+                name:
+                  type: string
+                  default: soup
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -476,12 +500,12 @@ class CategoryListResource(Resource):
             schema:
               id: category
               properties:
-                title:
+                name:
                   type: string
                   default: soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
         if not request_dict:
@@ -507,7 +531,6 @@ class CategoryListResource(Resource):
             return resp, status.HTTP_400_BAD_REQUEST
 
 
-
 class RecipeResource(Resource):
     """
     Resource for the recipe endpoints
@@ -526,7 +549,6 @@ class RecipeResource(Resource):
             description: The ID of the recipe to retrieve
             type: string
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -540,9 +562,10 @@ class RecipeResource(Resource):
                 body:
                   type: string
                   default: This is the process of making meat soup
+                category:
+                  type: string
+                  default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.get_or_404(id)
         result = recipe_schema.dump(recipe).data
@@ -566,24 +589,38 @@ class RecipeResource(Resource):
                           required: true
                           description: The title and body of the recipe
                           type: string
+                          schema:
+                            id: recipe
+                            properties:
+                                title:
+                                    type: string
+                                    default: Meat soup
+                                body:
+                                    type: string
+                                    default: Pour, mix, cook
+                                category:
+                                  type: string
+                                  default: Soup
                       security:
-                         - TokenParam: []
                          - TokenHeader: []
                       responses:
                         200:
                           description: A single recipe successfully edited
                           schema:
-                            id: category
+                            id: recipe
                             properties:
                                 title:
                                     type: string
-                                    default: soup
+                                    default: Meat soup
                                 body:
                                     type: string
                                     default: Pour, mix, cook
+                                category:
+                                  type: string
+                                  default: Soup
                       """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.get_or_404(id)
         recipe_dict = request.get_json(force=True)
@@ -622,21 +659,20 @@ class RecipeResource(Resource):
                             description: The ID of the recipe to delete
                             type: string
                         security:
-                           - TokenParam: []
                            - TokenHeader: []
                         responses:
                           200:
                             description: A single recipe successfully deleted
                         """
 
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.get_or_404(id)
         try:
             delete = recipe.delete(recipe)
-            response = make_response(jsonify({"Message": "Deleted"}), 200)
-            return response, status.HTTP_204_NO_CONTENT
+            response = make_response(jsonify({"Message": "Deleted"}), status.HTTP_200_OK)
+            return response
         except SQLAlchemyError as e:
             db.session.rollback()
             resp = jsonify({"error": str(e)})
@@ -648,7 +684,7 @@ class RecipeListResource(Resource):
     This class describes the object to retrieve a collection of recipes
     """
     @token_required
-    def get(current_user, self):
+    def get(self, current_user):
         """
         Get a list of recipes
             A paginated list of recipes
@@ -656,7 +692,6 @@ class RecipeListResource(Resource):
         tags:
           - recipes
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -666,13 +701,16 @@ class RecipeListResource(Resource):
               properties:
                 title:
                   type: json
-                  default: Soup
+                  default: Meat Soup
                 body:
                   type: json
                   default: Prepare it
+                category:
+                  type: json
+                  default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         pagination_helper = PaginationHelper(
             request,
@@ -697,7 +735,7 @@ class RecipeListResource(Resource):
             )
             results = recipes.paginate_query()
             if len(results['results']) <= 0:
-                return jsonify({"Errror": "No recipes. Create a recipe!"})
+                return jsonify({"Error": "No recipes. Create a recipe!"})
             return results
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
@@ -717,8 +755,19 @@ class RecipeListResource(Resource):
             required: true
             description: The title of the recipe
             type: string
+            schema:
+              id: recipe
+              properties:
+                title:
+                  type: string
+                  default: Meat soup
+                body:
+                  type: string
+                  default: This is the process of making meat soup
+                category:
+                  type: string
+                  default: Soup
         security:
-           - TokenParam: []
            - TokenHeader: []
         responses:
           200:
@@ -732,9 +781,12 @@ class RecipeListResource(Resource):
                 body:
                   type: string
                   default: This is the process of making meat soup
+                category:
+                  type: string
+                  default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
+        # if not current_user.id:
+        #     return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
 
@@ -769,6 +821,7 @@ class RecipeListResource(Resource):
             db.session.rollback()
             resp = jsonify({"error": str(e)})
             return resp, status.HTTP_400_BAD_REQUEST
+
 
 api.add_resource(UserListResource, '/auth/users/')
 api.add_resource(UserResource, '/auth/users/<int:id>')

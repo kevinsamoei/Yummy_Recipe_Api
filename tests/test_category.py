@@ -1,13 +1,10 @@
 # coding=utf-8
 from app import create_app
-import base64
 import json
-from base64 import b64encode
-from flask import current_app, url_for, jsonify
-from models import db, Category, Recipe, User
+from flask import url_for
+from models import db, Category
 from api import status
 import unittest
-# from unittest import TestCase
 
 
 class CategoryTests(unittest.TestCase):
@@ -20,12 +17,6 @@ class CategoryTests(unittest.TestCase):
         self.test_user_password = 'P@ssword1'
         with self.app_context:
             db.create_all()
-        # self.create_user(self.test_username, self.test_user_password)
-        # self.login_response = self.login_user(
-        #     self.test_username, self.test_user_password)
-        # self.authorization = json.loads(self.login_response.data.decode())['token']
-        # print(self.authorization)
-        # self.category_details = {"name": "Soup"}
 
     def tearDown(self):
         db.session.remove()
@@ -36,13 +27,6 @@ class CategoryTests(unittest.TestCase):
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-
-    # def get_authentication_headers(self, username, password):
-    #
-    #     authentication_headers = self.get_accept_content_type_headers()
-    #     authentication_headers['Authorization'] = \
-    #         'Basic ' + b64encode((username + ':' + password).encode('utf-8')).decode('utf-8')
-    #     return authentication_headers
 
     def test_request_without_authentication(self):
         response = self.test_client.get(
@@ -194,3 +178,49 @@ class CategoryTests(unittest.TestCase):
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
         self.assertEqual(get_response_data['name'], new_category_name_2)
+        new_category_name_3 = 'Beef'
+        create_response = self.create_category(
+            new_category_name_3
+        )
+        self.assertEqual(create_response.status_code, 201)
+        data = {'name': new_category_name_3}
+        put_response_3 = self.test_client.put(
+            new_category_url,
+            headers={"x-access-token":access_token},
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        result = json.loads(put_response_3.data.decode())
+        self.assertEqual(put_response_3.status_code, 400)
+        self.assertEqual(result, {'error': 'A category with the same name already exists'})
+        put_response_2 = self.test_client.put(
+            new_category_url,
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        res = json.loads(put_response_2.data.decode())
+        self.assertEqual(put_response_2.status_code, 400)
+
+    def test_delete_category(self):
+        """
+        Test delete a category is successful
+        """
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code,
+                         status.HTTP_201_CREATED)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
+        new_category_name = 'Soup'
+        post_response = self.create_category(new_category_name)
+        self.assertEqual(post_response.status_code,
+                         status.HTTP_201_CREATED)
+        post_response_data = json.loads(
+            post_response.get_data(as_text=True))
+        new_category_url = post_response_data['url']
+        del_response = self.test_client.delete(
+            new_category_url,
+            headers={"x-access-token":access_token}
+        )
+        self.assertEqual(del_response.status_code, status.HTTP_200_OK)

@@ -3,10 +3,6 @@ from flask import redirect
 from app import create_app
 
 app = create_app('config')
-app.config["Swagger"] = {
-    "title": "Yummy Recipe App",
-    "uiversion": 2,
-}
 
 
 @app.route('/')

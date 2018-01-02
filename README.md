@@ -11,10 +11,10 @@ URL Endpoint	|               HTTP requests   | access| status|
 /api/auth/login/	  |     POST	| Login and retrieve token|public
 /api/categories/	              |      POST	|  Create a new recipe category|private
 /api/categories	              |      GET	|  Retrieve all categories  for user|private
-/api/categories/<id>/   |  	 GET	   | Retrieve a category by ID | private
-/api/categories/<id>/	  |      PUT	|     Update a category |private
-/api/categories/<id>/   |      DELETE	| Delete a category |private
+/api/categories/<_id>/   |  	 GET	   | Retrieve a category by ID | private
+/api/categories/<_id>/	  |      PUT	|     Update a category |private
+/api/categories/<_id>/   |      DELETE	| Delete a category |private
 /api/recipes/  |  GET  |Retrieve recipes in a given category |private
 /api/recipes/     |     POST	| Create recipes in a category|private
-/api/recipes/<recipe_id>/|	DELETE	| Delete a recipe in a category  |private
-/api/recipes/<recipe_id>/ |	PUT   	|update recipe details |private
+/api/recipes/<_id>/|	DELETE	| Delete a recipe in a category  |private
+/api/recipes/<_id>/ |	PUT   	|update recipe details |private
