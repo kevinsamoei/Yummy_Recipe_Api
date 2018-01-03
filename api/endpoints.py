@@ -696,6 +696,10 @@ class RecipeListResource(Resource):
           - recipes
         security:
            - TokenHeader: []
+        parameters:
+          - in: path
+            name: ?q
+            description: Search parameter q
         responses:
           200:
             description: A list of recipes
