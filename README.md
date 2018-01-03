@@ -1,4 +1,4 @@
-# Yummy_Recipe_Api
+# Yummy_Recipe_Api  :smiley:
 Yummy recipes provides a platform for users to keep track of their awesome recipes and share with others if they so wish.
 
 [![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php)  [![Build Status](https://travis-ci.org/kevinsamoei/Yummy_Recipe_Api.svg?branch=develop)](https://travis-ci.org/kevinsamoei/Yummy_Recipe_Api)  [![Coverage Status](https://coveralls.io/repos/github/kevinsamoei/Yummy_Recipe_Api/badge.svg?branch=develop&service=github)](https://coveralls.io/github/kevinsamoei/Yummy_Recipe_Api?branch=develop)  [![Maintainability](https://api.codeclimate.com/v1/badges/586d92d364bfd5ccd26b/maintainability)](https://codeclimate.com/github/kevinsamoei/Yummy_Recipe_Api/maintainability)  [![Codacy Badge](https://api.codacy.com/project/badge/Grade/04b5b7f72b494b98975830bdadf1edf1)](https://www.codacy.com/app/kevinsamoei/Yummy_Recipe_Api?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=kevinsamoei/Yummy_Recipe_Api&amp;utm_campaign=Badge_Grade)  [![Code Health](https://landscape.io/github/kevinsamoei/Yummy_Recipe_Api/develop/landscape.svg?style=plastic)](https://landscape.io/github/kevinsamoei/Yummy_Recipe_Api/develop)
@@ -108,7 +108,7 @@ DELETE /api/recipes/\<id>	  |     PUT	| Delete a recipe|FALSE
 * Postgresql
 
 # Authors
-* Kevin samoei
+* Kevin samoei :hearts:
 
 # Licence 
 This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/kevinsamoei/Yummy_Recipe_Api/blob/develop/LICENSE) file for details
