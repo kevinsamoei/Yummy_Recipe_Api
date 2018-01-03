@@ -6,13 +6,6 @@ Yummy recipes provides a platform for users to keep track of their awesome recip
 # Overview
 # What?
 Yummy recipes provides a platform for users to keep track of their awesome recipes and share with others if they so wish.
-# How?
-This project is broken down into 4 challenges whose completion would contribute greatly to your learning towards becoming a full-stack developer. Upon completion, you would have built a world-class full-stack (frontend and backend)  Python application.
-
-# Why?
-Andela distributes opportunities. We disseminate Learning and catalyse Technology leadership. The project is founded on the premise that aspiring Technology Leaders learn programming whilst building things that matter and that the best way to learn is by building a complete product.  
-
-`This project has one objective: create opportunities for learning where they build real products. In this way, we inspire change in the African tech landscape.`
 # Usage
 * Users create accounts
 * Users can log in
