@@ -6,7 +6,6 @@ Yummy recipes provides a platform for users to keep track of their awesome recip
 # Overview
 # What?
 Yummy recipes provides a platform for users to keep track of their awesome recipes and share with others if they so wish.
-
 # How?
 This project is broken down into 4 challenges whose completion would contribute greatly to your learning towards becoming a full-stack developer. Upon completion, you would have built a world-class full-stack (frontend and backend)  Python application.
 
@@ -20,6 +19,55 @@ Andela distributes opportunities. We disseminate Learning and catalyse Technolog
 * Users create, view, update and delete recipe categories
 * Users can create, view, update or delete recipes in existing categories
 
+# Important Links
+- [Heroku](http://yummyrecipesapi.herokuapp.com/apidocs/)
+- [Github](https://github.com/kevinsamoei/Yummy_Recipe_Api)
+- [Licene](https://opensource.org/licenses/mit-license.php)
+
+# Prerequisities
+The following software is needed for the project:
+- Python 3.XX
+- Flask
+- Postman(optional)
+
+# Installing
+Follow this steps to get you up and running:
+* Install python
+#### Install Python: Windows
+Download python for windows on [Official python website](https://www.python.org/downloads/windows/) and run the executable file
+
+#### Install Python: OS X
+You need to go to the [website](https://www.python.org/downloads/release/python-363/) and download the Python installer and run the file.
+#### Install python: linux
+On the command line run ```$ sudo apt-get install python3.6```
+* Clone the project
+
+  `git clone https://github.com/kevinsamoei/Yummy_Recipe_Api`
+* Move into the project's folder
+
+  `cd Yummy_Recipe_Api`
+* Install virtual environment and Create a virtual environment
+
+    `pip install virtualenv`
+* create a virtual environment called "myenv"
+
+   `$ python3 -m venv myvenv`
+* Activate your virtual environment
+
+  `source myvenv/bin/activate`
+
+* Install project requirements
+   `(myvenv) ~$ pip install -r requirements.txt`
+ 
+* Create your postgresql database and change the uri in the `config.py` module
+
+* Run the application
+    `(myvenv) ~$ python run.py`
+
+# Running the tests
+To run the tests use either pytests or nosetests:
+   ```pytest --cov=api tests/```
+   ```nosetests --with-coverage --cover-tests --cover-erase --cover-package=api```
 
 # API Endpoints
  ### Authentication
@@ -50,3 +98,21 @@ GET /api/recipes/	  |     GET	| Retrieve a paginated list of recipes|FALSE
 GET /api/recipes/\<id>	  |     GET	| Retrieve a recipe with the specified id|FALSE
 PUT /api/recipes/\<id>	  |     PUT	| Edit a recipe|FALSE
 DELETE /api/recipes/\<id>	  |     PUT	| Delete a recipe|FALSE
+
+
+# Built with
+* Python 3.6
+* Flask 0.12.2
+* Flask-RestFul
+* Postgresql
+
+# Authors
+* Kevin samoei
+
+# Licence 
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/kevinsamoei/Yummy_Recipe_Api/blob/develop/LICENSE) file for details
+
+# Acknowledgements
+* Andelans
+* Stack overflow
+* Official documentations for python, flask, postgresql
