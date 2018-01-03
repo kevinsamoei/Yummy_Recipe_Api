@@ -40,6 +40,7 @@ Download python for windows on [Official python website](https://www.python.org/
 You need to go to the [website](https://www.python.org/downloads/release/python-363/) and download the Python installer and run the file.
 #### Install python: linux
 On the command line run ```$ sudo apt-get install python3.6```
+#### Install the project locally
 * Clone the project
 
   `git clone https://github.com/kevinsamoei/Yummy_Recipe_Api`
