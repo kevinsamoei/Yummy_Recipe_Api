@@ -14,7 +14,7 @@ class UserSchema(ma.Schema):
     id = fields.Integer(dump_only=True)
     username = fields.String(required=True, validate=validate.Length(3))
     hashed_password = fields.String()
-    url = ma.URLFor('api.userresource', id='<id>', _external=True)
+    url = ma.URLFor('api.registeruser', id='<id>', _external=True)
 
 
 class CategorySchema(ma.Schema):

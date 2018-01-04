@@ -85,13 +85,6 @@ class AuthTestCase(unittest.TestCase):
         self.assertEqual(User.query.count(), 1)
         post_response_data = json.loads(post_response.get_data(as_text=True))
         self.assertEqual(post_response_data['username'], new_user_name)
-        new_user_url = post_response_data['url']
-        get_response = self.test_client.get(
-            new_user_url,
-            headers={"x-access-token":access_token})
-        get_response_data = json.loads(get_response.get_data(as_text=True))
-        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(get_response_data['username'], new_user_name)
 
     def test_user_login(self):
         """Test registered user can login."""

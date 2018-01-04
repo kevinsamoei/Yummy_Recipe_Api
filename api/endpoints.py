@@ -20,68 +20,6 @@ user_schema = UserSchema()
 api = Api(api_bp)
 
 
-class UserResource(Resource):
-    """
-    Class to create the user resource endpoints
-    """
-    @token_required
-    def get(current_user, self, id):
-        """
-        Get a user with the specified Id
-        Retrieves a paginated result set of users.
-        ---
-        tags:
-          - auth
-        parameters:
-          - in: path
-            name: id
-            required: true
-            description: The ID of a single user
-            type: string
-        security:
-           - TokenHeader: []
-        responses:
-          200:
-            description: A list of users
-            schema:
-              id: User
-              properties:
-                user:
-                  type: string
-                  default: kevin
-
-                """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
-
-        user = User.query.get_or_404(id)
-        result = user_schema.dump(user).data
-        return result
-
-
-class UserListResource(Resource):
-    """
-    Class to create endpoint for a collection of users
-    """
-    @token_required
-    def get(current_user, self):
-        """
-        Get a list of all users
-        """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
-
-        pagination_helper = PaginationHelper(
-            request,
-            query=User.query,
-            resource_for_url='api.userlistresource',
-            key_name='results',
-            schema=user_schema
-        )
-        result = pagination_helper.paginate_query()
-        return result
-
-
 class RegisterUser(Resource):
     """"
     Class to register a new user
@@ -872,8 +810,6 @@ class RecipeListResource(Resource):
             return resp, status.HTTP_400_BAD_REQUEST
 
 
-api.add_resource(UserListResource, '/auth/users/')
-api.add_resource(UserResource, '/auth/users/<int:id>')
 api.add_resource(RegisterUser, '/auth/register/')
 api.add_resource(LoginUser, '/auth/login/')
 api.add_resource(LogoutUser, '/auth/logout/')
