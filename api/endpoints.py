@@ -719,6 +719,12 @@ class RecipeListResource(Resource):
           - in: query
             name: q
             description: Search parameter q
+          - in: query
+            name: limit
+            description: The limit of recipes
+          - in: query
+            name: page
+            description: The page to display
         responses:
           200:
             description: A list of recipes
