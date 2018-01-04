@@ -209,25 +209,6 @@ class LoginUser(Resource):
 
         return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
 
-        # auth = request.authorization
-        #
-        # if not auth or not auth.username or not auth.password:
-        #     return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-        #
-        # user = User.query.filter_by(username=auth.username).first()
-        #
-        # if not user:
-        #     return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-        #
-        # if user.verify_password(auth.password):
-        #     token = jwt.encode(
-        #         {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
-        #         'topsecret')
-        #
-        #     return jsonify({"token": token.decode('UTF-8')})
-        #
-        # return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
-
 
 class LogoutUser(Resource):
     """
@@ -270,11 +251,30 @@ class ResetPassword(Resource):
     """
     Resource to reset a user's password
     """
-    def post(self, id):
+    @token_required
+    def post(current_user, self, id):
+        """Reset a user's password
         """
-        Reset password
-        """
-        pass
+        if not current_user.id:
+            return make_response(jsonify({'message': 'Can not perform that function'}))
+
+        user = User.query.get_or_404(id)
+        password_dict = request.get_json()
+        if not password_dict:
+            resp = {'message': 'No input data provided'}
+            return resp, status.HTTP_400_BAD_REQUEST
+        errors = user_schema.validate(password_dict)
+        if errors:
+            return errors, status.HTTP_400_BAD_REQUEST
+        try:
+            if 'password' in password_dict:
+                password = password_dict['password']
+            user.update()
+            return {"Message":"Successful"}
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            resp = jsonify({'error': str(e)})
+            return resp, status.HTTP_401_UNAUTHORIZED
 
 
 class CategoryResource(Resource):
@@ -308,13 +308,13 @@ class CategoryResource(Resource):
         """
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
-
-        category = Category.query.get_or_404(id)
-        if category.user_id == current_user.id:
+        try:
+            category = Category.query.get_or_404(id)
             result = category_schema.dump(category).data
             return result
-        else:
-            return jsonify({"error": "Login to access"})
+        except Exception:
+            response = {"Error": "No category with that Id"}
+            return response, status.HTTP_404_NOT_FOUND
 
     @token_required
     def put(current_user, self, id):
@@ -400,7 +400,6 @@ class CategoryResource(Resource):
 
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
-
         category = Category.query.get_or_404(id)
         try:
             category.delete(category)
@@ -424,6 +423,16 @@ class CategoryListResource(Resource):
         ---
         tags:
           - categories
+        parameters:
+          - in: query
+            name: q
+            description: Search parameter
+          - in: query
+            name: limit
+            description: Number of categories to display per page
+          - in: query
+            name: page
+            description: Page to view
         security:
            - TokenHeader: []
         responses:
@@ -439,12 +448,17 @@ class CategoryListResource(Resource):
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
 
+        per_page = request.args.get('limit', default=5, type=int)
+        page = request.args.get('page', default=1, type=int)
+
         pagination_helper = PaginationHelper(
             request,
             query=Category.query.filter(
                     Category.user_id == current_user.id),
             resource_for_url='api.categorylistresource',
             key_name='results',
+            page=page,
+            results_per_page=per_page,
             schema=category_schema
         )
         search = request.args.get('q')
@@ -458,6 +472,7 @@ class CategoryListResource(Resource):
                     Category.name.contains(search)),
                 resource_for_url='api.categorylistresource',
                 key_name='results',
+                results_per_page=per_page,
                 schema=category_schema
             )
             results = categories.paginate_query()
@@ -570,9 +585,13 @@ class RecipeResource(Resource):
                   default: Soup
         """
 
-        recipe = Recipe.query.get_or_404(id)
-        result = recipe_schema.dump(recipe).data
-        return result
+        try:
+            recipe = Recipe.query.get_or_404(id)
+            result = recipe_schema.dump(recipe).data
+            return result
+        except Exception:
+            response = {"Error": "A recipe with that Id does not exist"}
+            return response, status.HTTP_404_NOT_FOUND
 
     @token_required
     def put(current_user, self, id):
@@ -697,8 +716,8 @@ class RecipeListResource(Resource):
         security:
            - TokenHeader: []
         parameters:
-          - in: path
-            name: ?q
+          - in: query
+            name: q
             description: Search parameter q
         responses:
           200:
@@ -719,10 +738,15 @@ class RecipeListResource(Resource):
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
 
+        per_page = request.args.get('limit', default=5, type=int)
+        page = request.args.get('page', default=1, type=int)
+
         pagination_helper = PaginationHelper(
             request,
             query=Recipe.query.filter(Recipe.user_id == current_user.id),
             resource_for_url='api.recipelistresource',
+            results_per_page=per_page,
+            page=page,
             key_name='results',
             schema=recipe_schema
         )
@@ -738,6 +762,8 @@ class RecipeListResource(Resource):
                     (Recipe.body.contains(search))),
                 resource_for_url='api.recipelistresource',
                 key_name='results',
+                page=page,
+                results_per_page=per_page,
                 schema=recipe_schema
             )
             results = recipes.paginate_query()
@@ -845,6 +871,7 @@ api.add_resource(UserResource, '/auth/users/<int:id>')
 api.add_resource(RegisterUser, '/auth/register/')
 api.add_resource(LoginUser, '/auth/login/')
 api.add_resource(LogoutUser, '/auth/logout/')
+api.add_resource(ResetPassword, '/auth/reset-password/<int:id>')
 api.add_resource(CategoryListResource, '/categories/')
 api.add_resource(CategoryResource, '/categories/<int:id>')
 api.add_resource(RecipeListResource, '/recipes/')

@@ -163,6 +163,6 @@ class AuthTestCase(unittest.TestCase):
             headers={"x-access-token": access_token}
         )
         res = json.loads(logout2_response.data.decode())
-        self.assertEqual(logout2_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(logout2_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(res, "Logged out. Please Log in again")
+        self.assertEqual(logout2_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(logout2_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(res, {'message': 'Logged out. log in again'})

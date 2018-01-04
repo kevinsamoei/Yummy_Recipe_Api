@@ -12,8 +12,8 @@ def create_app(config_filename):
                              "info": {
                                 "title": "Yummy Recipe API",
                                 "description": "Yummy Recipe api challenge for is part of the boot-camp challenges."
-                                          "\n\nThe link for the heroku app is 'https://api-yummy.herokuapp.com'."
-                                          "\n\nThe github repo link is 'https://github.com/kevinsamoei/Yummy_Recipes_Api'",
+                                      "\n\nThe link for the heroku app is 'https://api-yummy.herokuapp.com'."
+                                      "\n\nThe github repo link is 'https://github.com/kevinsamoei/Yummy_Recipes_Api'",
                                 "version": "1.0.0",
                                 "basepath": '/',
                              },
@@ -23,7 +23,6 @@ def create_app(config_filename):
                                     "name": "x-access-token",
                                     "in": "header"
                                 },
-                                 # 'basicAuth': {'type': 'basic'}
                              },
                              "consumes": [
                                  "application/json",

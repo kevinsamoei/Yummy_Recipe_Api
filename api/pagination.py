@@ -7,13 +7,14 @@ class PaginationHelper():
     """
     This is a helper method to create pagination
     """
-    def __init__(self, request, query, resource_for_url, key_name, schema):
+    def __init__(self, request, query, resource_for_url, key_name, schema, results_per_page, page):
         self.request = request
         self.query = query
         self.resource_for_url = resource_for_url
         self.key_name = key_name
         self.schema = schema
-        self.results_per_page = current_app.config['PAGINATION_PAGE_SIZE']
+        self.page = page
+        self.results_per_page = results_per_page
         self.page_argument_name = current_app.config['PAGINATION_PAGE_ARGUMENT_NAME']
 
     def paginate_query(self):

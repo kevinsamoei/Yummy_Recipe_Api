@@ -41,7 +41,8 @@ class User(db.Model, AddUpdateDelete):
     hashed_password = db.Column(db.String(120), nullable=False)
     created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
 
-    recipes = db.relationship('Recipe', backref='user', lazy='dynamic')
+    recipes = db.relationship('Recipe', backref='user', lazy='dynamic',
+                              cascade="all, delete-orphan")
 
     def verify_password(self, password):
         """
@@ -119,7 +120,8 @@ class Recipe(db.Model, AddUpdateDelete):
     modified_timestamp = db.Column(db.DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id', ondelete='CASCADE'))
     category = db.relationship('Category', backref=db.backref('recipes',
-                                                              lazy='dynamic', order_by='Recipe.title'))
+                                                              lazy='dynamic', order_by='Recipe.title',
+                                                              cascade="all, delete-orphan"))
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __init__(self, title, body, category, user):
