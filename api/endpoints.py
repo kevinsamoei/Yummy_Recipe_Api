@@ -128,15 +128,17 @@ class LoginUser(Resource):
         auth = request.get_json()
         try:
             if not auth or not auth['username'] or not auth['password']:
-                return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+                return make_response({'Could not verify. Wrong username or password'}, 401,
+                                     {'WWW-Authentication': 'Basic realm="Login required"'})
         except KeyError as e:
             response = jsonify({"error": str(e)})
-            return response
+            return response, status.HTTP_400_BAD_REQUEST
 
         user = User.query.filter_by(username=auth['username']).first()
 
         if not user:
-            return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+            return make_response('Could not verify. Wrong username or password', 401,
+                                 {'WWW-Authentication': 'Basic realm="Login required"'})
 
         if user.verify_password(auth['password']):
             token = jwt.encode(
@@ -145,7 +147,8 @@ class LoginUser(Resource):
 
             return jsonify({"token": token.decode('UTF-8')})
 
-        return make_response('Could not verify', 401, {'WWW-Authentication': 'Basic realm="Login required"'})
+        return make_response('Could not verify. Wrong username or password', 401,
+                             {'WWW-Authentication': 'Basic realm="Login required"'})
 
 
 class LogoutUser(Resource):
@@ -190,25 +193,38 @@ class ResetPassword(Resource):
     Resource to reset a user's password
     """
     @token_required
-    def post(current_user, self, id):
+    def post(current_user, self):
         """Reset a user's password
         """
+
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
 
-        user = User.query.get_or_404(id)
         password_dict = request.get_json()
+
+        user = User.query.filter_by(id=current_user.id).first()
+
         if not password_dict:
             resp = {'message': 'No input data provided'}
             return resp, status.HTTP_400_BAD_REQUEST
-        errors = user_schema.validate(password_dict)
-        if errors:
-            return errors, status.HTTP_400_BAD_REQUEST
         try:
-            if 'password' in password_dict:
-                password = password_dict['password']
-            user.update()
-            return {"Message":"Successful"}
+            old_password = password_dict['old']
+            new_password = password_dict['new']
+        except Exception as e:
+            return {"error": str(e)}
+
+        if not user.verify_password(old_password):
+            return {'status': 'error', 'message': 'old password is not correct'}
+        try:
+            error_message, password_ok = \
+                user.check_password_strength_and_hash_if_ok(new_password)
+            if password_ok:
+                user.update()
+                query = User.query.get(user.id)
+                result = user_schema.dump(query).data
+                return result, status.HTTP_201_CREATED
+            else:
+                return {'error': error_message}, status.HTTP_400_BAD_REQUEST
         except SQLAlchemyError as e:
             db.session.rollback()
             resp = jsonify({'error': str(e)})
@@ -813,7 +829,7 @@ class RecipeListResource(Resource):
 api.add_resource(RegisterUser, '/auth/register/')
 api.add_resource(LoginUser, '/auth/login/')
 api.add_resource(LogoutUser, '/auth/logout/')
-api.add_resource(ResetPassword, '/auth/reset-password/<int:id>')
+api.add_resource(ResetPassword, '/auth/reset-password/')
 api.add_resource(CategoryListResource, '/categories/')
 api.add_resource(CategoryResource, '/categories/<int:id>')
 api.add_resource(RecipeListResource, '/recipes/')
