@@ -81,7 +81,7 @@ POST /api/categories/   |      POST	| Create a new category|FALSE
 GET /api/categories/	  |     GET	| Retrieve a paginated list of categories|FALSE
 GET /api/categories/\<id>	  |     GET	| Retrieve a category with the specified id|FALSE
 PUT /api/categories/\<id>	  |     PUT	| Edit a category|FALSE
-DELETE /api/categories/\<id>	  |     PUT	| Delete a category|FALSE
+DELETE /api/categories/\<id>	  |     DELETE	| Delete a category|FALSE
 
 ### Recipes
 
@@ -91,7 +91,7 @@ POST /api/recipes/   |      POST	| Create a new recipe|FALSE
 GET /api/recipes/	  |     GET	| Retrieve a paginated list of recipes|FALSE
 GET /api/recipes/\<id>	  |     GET	| Retrieve a recipe with the specified id|FALSE
 PUT /api/recipes/\<id>	  |     PUT	| Edit a recipe|FALSE
-DELETE /api/recipes/\<id>	  |     PUT	| Delete a recipe|FALSE
+DELETE /api/recipes/\<id>	  |     DELETE	| Delete a recipe|FALSE
 
 
 # Built with
