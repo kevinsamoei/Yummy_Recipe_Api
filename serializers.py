@@ -1,4 +1,5 @@
 # coding=utf-8
+import datetime
 from marshmallow import Schema, fields, pre_load
 from marshmallow import validate
 
@@ -35,12 +36,12 @@ class RecipeSchema(ma.Schema):
     id = fields.Integer(dump_only=True)
     title = fields.String(required=True, validate=validate.Length(1))
     body = fields.String(required=True, validate=validate.Length(3))
-    # created_timestamp = fields.Integer(default=datetime.datetime.now())
-    # modified_timestamp = fields.Integer(default=datetime.datetime.now())
+    # created_timestamp = fields.Integer(dump_only=True, default=datetime.datetime.now())
+    # modified_timestamp = fields.Integer(dump_only=True, default=datetime.datetime.now())
     user_id = fields.Integer(dump_only=True)
+    url = ma.URLFor('api.reciperesource', id='<id>', _external=True)
     category = fields.Nested(CategorySchema, only=['id', 'url', 'name'],
                              required=True)
-    url = ma.URLFor('api.recipelistresource', id='<id>', _external=True)
 
     @pre_load
     def process_category(self, data):

@@ -101,11 +101,11 @@ class RecipeCase(unittest.TestCase):
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(get_response_data['results'][0]['title'],
+        self.assertEqual(get_response_data['title'],
                          new_recipe_title)
-        self.assertEqual(get_response_data['results'][0]['body'],
+        self.assertEqual(get_response_data['body'],
                          new_recipe_body)
-        self.assertEqual(get_response_data['results'][0]['category']['name'],
+        self.assertEqual(get_response_data['category']['name'],
                          new_recipe_category)
 
     def test_create_duplicated_recipe(self):
@@ -137,11 +137,11 @@ class RecipeCase(unittest.TestCase):
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(get_response_data['results'][0]['title'],
+        self.assertEqual(get_response_data['title'],
                          new_recipe_title)
-        self.assertEqual(get_response_data['results'][0]['body'],
+        self.assertEqual(get_response_data['body'],
                          new_recipe_body)
-        self.assertEqual(get_response_data['results'][0]['category']['name'],
+        self.assertEqual(get_response_data['category']['name'],
                          new_recipe_category)
         second_post_response = self.create_recipe(new_recipe_title,
                                                   new_recipe_body,
@@ -211,13 +211,13 @@ class RecipeCase(unittest.TestCase):
             get_second_page_url,
             headers={"x-access-token": access_token}
         )
-        get_second_page_response_data =json.loads(
+        get_second_page_response_data = json.loads(
             get_second_page_response.get_data(as_text=True))
         self.assertEqual(get_second_page_response.status_code,
                          status.HTTP_200_OK)
         # self.assertIsNotNone(get_second_page_response_data['previous'])
-        # self.assertEqual(get_second_page_response_data['previous'],
-        #                  url_for('api.recipelistresource', page=1))
+        self.assertEqual(get_second_page_response_data,
+                         {"Error": "No recipes. Create a recipe!"})
         # self.assertIsNone(get_second_page_response_data['next'])
         # self.assertIsNotNone(get_second_page_response_data['results'])
         # self.assertEqual(len(get_second_page_response_data['results']), 0)
@@ -243,14 +243,13 @@ class RecipeCase(unittest.TestCase):
                          status.HTTP_201_CREATED)
 
         self.assertEqual(Recipe.query.count(), 1)
-        # post_response_data = json.loads(post_response.get_data(as_text=True))
-        new_recipe_url = 'http://127.0.0.1:5000/api/recipes/1'
+        post_response_data = json.loads(post_response.get_data(as_text=True))
+        new_recipe_url = post_response_data['url']
         new_recipe_title = "Meat Soup"
         data = {'title': new_recipe_title}
         patch_response = self.test_client.put(
             new_recipe_url,
             headers={"x-access-token": access_token},
-            content_type='application/json',
             data=json.dumps(data)
         )
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
@@ -298,9 +297,8 @@ class RecipeCase(unittest.TestCase):
                                            new_recipe_category_1)
         self.assertEqual(post_response.status_code,
                          status.HTTP_201_CREATED)
-        # post_response_data = json.loads(post_response.get_data(as_text=True))
-        # new_recipe_url = post_response_data['url']
-        new_recipe_url = 'http://127.0.0.1:5000/api/recipes/1'
+        post_response_data = json.loads(post_response.get_data(as_text=True))
+        new_recipe_url = post_response_data['url']
         delete_response = self.test_client.delete(
             new_recipe_url,
             headers={"x-access-token":access_token}

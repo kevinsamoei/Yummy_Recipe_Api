@@ -128,7 +128,7 @@ class LoginUser(Resource):
         auth = request.get_json()
         try:
             if not auth or not auth['username'] or not auth['password']:
-                return make_response({'Could not verify. Wrong username or password'}, 401,
+                return make_response('Could not verify. Wrong username or password', 401,
                                      {'WWW-Authentication': 'Basic realm="Login required"'})
         except KeyError as e:
             response = jsonify({"error": str(e)})
@@ -211,10 +211,12 @@ class ResetPassword(Resource):
             old_password = password_dict['old']
             new_password = password_dict['new']
         except Exception as e:
-            return {"error": str(e)}
+            response = {"error": str(e)}
+            return response, status.HTTP_400_BAD_REQUEST
 
         if not user.verify_password(old_password):
-            return {'status': 'error', 'message': 'old password is not correct'}
+            response = {'status': 'error', 'message': 'old password is not correct'}
+            return response, status.HTTP_400_BAD_REQUEST
         try:
             error_message, password_ok = \
                 user.check_password_strength_and_hash_if_ok(new_password)

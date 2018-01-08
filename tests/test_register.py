@@ -159,3 +159,61 @@ class AuthTestCase(unittest.TestCase):
         self.assertEqual(logout2_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(logout2_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(res, {'message': 'Logged out. log in again'})
+
+    def test_reset_password(self):
+        """Test if user can reset password successfully"""
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code, 201)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
+        data = {"old": "P@ssword1", "new": "P@ssw0rd"}
+        url = url_for('api.resetpassword', _external=True)
+        response = self.test_client.post(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data_2 = {"old": "P@ssword1", "new": "P@ssw0rd"}
+        response_2 = self.test_client.post(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_2),
+            content_type='application/json'
+        )
+        response_2_data = json.loads(response_2.data.decode())
+        self.assertEqual(response_2_data, {'status': 'error', 'message': 'old password is not correct'})
+        self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        data_3 = {}
+        response_3 = self.test_client.post(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_3),
+            content_type='application/json'
+        )
+        response_3_data = json.loads(response_3.data.decode())
+        self.assertTrue(response_3_data, {'message': 'No input data provided'})
+        self.assertEqual(response_3.status_code, status.HTTP_400_BAD_REQUEST)
+        data_4 = {"old":"P@ssw0rd"}
+        response_4 = self.test_client.post(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_4),
+            content_type='application/json'
+        )
+        response_4_data = json.loads(response_4.data.decode())
+        self.assertEqual(response_4_data, {"error": "'new'"})
+        self.assertEqual(response_4.status_code, status.HTTP_400_BAD_REQUEST)
+        data_5 = {"old": "P@ssw0rd", "new": "P@ssword"}
+        response_5 = self.test_client.post(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_5),
+            content_type='application/json'
+        )
+        response_5_data = json.loads(response_5.data.decode())
+        self.assertEqual(response_5_data, {"error": "The password must include at least one number"})
+        self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
