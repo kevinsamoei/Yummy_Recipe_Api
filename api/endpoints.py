@@ -128,17 +128,16 @@ class LoginUser(Resource):
         auth = request.get_json()
         try:
             if not auth or not auth['username'] or not auth['password']:
-                return make_response('Could not verify. Wrong username or password', 401,
-                                     {'WWW-Authentication': 'Basic realm="Login required"'})
+                return make_response(jsonify({'error': 'No data provided'}), status.HTTP_400_BAD_REQUEST)
         except KeyError as e:
-            response = jsonify({"error": str(e)})
+            response = {"error": str(e)}
             return response, status.HTTP_400_BAD_REQUEST
 
         user = User.query.filter_by(username=auth['username']).first()
 
         if not user:
-            return make_response('Could not verify. Wrong username or password', 401,
-                                 {'WWW-Authentication': 'Basic realm="Login required"'})
+            res = {'error': 'No user with that name exists'}
+            return res, status.HTTP_401_UNAUTHORIZED
 
         if user.verify_password(auth['password']):
             token = jwt.encode(
@@ -147,7 +146,7 @@ class LoginUser(Resource):
 
             return jsonify({"token": token.decode('UTF-8')})
 
-        return make_response('Could not verify. Wrong username or password', 401,
+        return make_response(jsonify({'error': 'Could not verify. Wrong username or password'}), 401,
                              {'WWW-Authentication': 'Basic realm="Login required"'})
 
 
