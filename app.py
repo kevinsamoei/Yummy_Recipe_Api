@@ -11,8 +11,9 @@ def create_app(config_filename):
                              "uiversion": 2,
                              "info": {
                                 "title": "Yummy Recipe API",
-                                "description": "Yummy Recipe api challenge for is part of the boot-camp challenges."
-                                      "\n\nThe link for the heroku app is 'https://api-yummy.herokuapp.com'."
+                                "description": "Yummy recipes provides a platform for users to keep track of their "
+                                               "awesome recipes and share with others if they so wish."
+                                      "\n\nThe link for the heroku app is 'https://yummyrecipesapi.herokuapp.com'."
                                       "\n\nThe github repo link is 'https://github.com/kevinsamoei/Yummy_Recipes_Api'",
                                 "version": "1.0.0",
                                 "basepath": '/',

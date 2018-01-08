@@ -195,6 +195,27 @@ class ResetPassword(Resource):
     @token_required
     def post(current_user, self):
         """Reset a user's password
+        ---
+        tags:
+          - auth
+        parameters:
+          - in: body
+            name: body
+            description: Old password and new user password
+            type: string
+            schema:
+              id: auth
+              properties:
+                old:
+                  default: P@ssword1
+                new:
+                  default: P@ssw0rd
+        responses:
+          201:
+            description: successfully changed the password
+          400:
+            description: Bad request. Wrong details, missing parameters and invalid passwords
+
         """
 
         if not current_user.id:
