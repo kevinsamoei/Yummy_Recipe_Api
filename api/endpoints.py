@@ -7,7 +7,7 @@ from flask_restful import Api, Resource
 
 from models import db, User, Category,Recipe, DisableTokens
 from serializers import UserSchema, CategorySchema, RecipeSchema
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 from api import status
 from .pagination import PaginationHelper
@@ -80,7 +80,7 @@ class RegisterUser(Resource):
                 return result, status.HTTP_201_CREATED
             else:
                 return {'error': error_message}, status.HTTP_400_BAD_REQUEST
-        except SQLAlchemyError as e:
+        except OperationalError as e:
             db.session.rollback()
             resp = {'error': str(e)}
             return resp, status.HTTP_400_BAD_REQUEST
@@ -341,7 +341,7 @@ class CategoryResource(Resource):
             return errors, status.HTTP_400_BAD_REQUEST
         try:
             if 'name' in category_dict:
-                category_name = category_dict['name']
+                category_name = category_dict['name'].lower()
                 if Category.is_unique(id=id, name=category_name):
                     category.name = category_name
                 else:
@@ -376,7 +376,9 @@ class CategoryResource(Resource):
 
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
-        category = Category.query.get_or_404(id)
+        category = Category.query.filter_by(id=id).first()
+        if not category:
+            return {"error": "No category with that id exists"}
         try:
             category.delete(category)
             response = make_response(jsonify({"message": "successfully deleted"}), status.HTTP_200_OK)
@@ -440,7 +442,6 @@ class CategoryListResource(Resource):
         search = request.args.get('q')
 
         if search:
-            search.strip()
             categories = PaginationHelper(
                 request,
                 query=Category.query.filter(
@@ -448,6 +449,7 @@ class CategoryListResource(Resource):
                     Category.name.contains(search)),
                 resource_for_url='api.categorylistresource',
                 key_name='results',
+                page=page,
                 results_per_page=per_page,
                 schema=category_schema
             )
@@ -506,7 +508,7 @@ class CategoryListResource(Resource):
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
 
-        category_name = request_dict['name'].title()
+        category_name = request_dict['name'].lower()
         if not Category.is_unique(id=0, name=category_name):
             response = {"error": "A category with the same name already exists"}
             return response, status.HTTP_400_BAD_REQUEST
@@ -623,7 +625,7 @@ class RecipeResource(Resource):
         recipe = Recipe.query.get_or_404(id)
         recipe_dict = request.get_json(force=True)
         if 'title' in recipe_dict:
-            recipe_title = recipe_dict['title']
+            recipe_title = recipe_dict['title'].lower()
             if Recipe.is_unique(id=id, title=recipe_title):
                 recipe.title = recipe_title
             else:
@@ -666,9 +668,11 @@ class RecipeResource(Resource):
         if not current_user.id:
             return make_response(jsonify({'message': 'Can not perform that function'}))
 
-        recipe = Recipe.query.get_or_404(id)
+        recipe = Recipe.query.filter_by(id=id).first()
+        if not recipe:
+            return {"error": "A recipe with the the id of {0} does not exist".format(id)}
         try:
-            delete = recipe.delete(recipe)
+            recipe.delete(recipe)
             response = make_response(jsonify({"Message": "Deleted"}), status.HTTP_200_OK)
             return response
         except SQLAlchemyError as e:
@@ -811,7 +815,7 @@ class RecipeListResource(Resource):
         errors = recipe_schema.validate(request_dict)
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
-        recipe_title = request_dict['title'].title()
+        recipe_title = request_dict['title'].lower()
         recipe_body = request_dict['body']
         if not Recipe.is_unique(id=0, title=recipe_title):
             response = {'error': 'A recipe with the same title already exists'}
@@ -823,7 +827,7 @@ class RecipeListResource(Resource):
         if validated_body:
             return {"Error": "Recipe body is not valid"}
         try:
-            category_name = request_dict['category']['name']
+            category_name = request_dict['category']['name'].lower()
             validate_category = Category.validate_category(name=category_name)
             if validate_category:
                 return {"Error": "Not a valid category name"}
