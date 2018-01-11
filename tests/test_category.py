@@ -74,8 +74,7 @@ class CategoryTests(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        url = url_for('api.categorylistresource', _external=True)
-        new_category_name = 'Soup'
+        new_category_name = 'soup'
         post_response = self.create_category(new_category_name)
         self.assertEqual(post_response.status_code, 201)
         self.assertEqual(Category.query.count(), 1)
@@ -94,14 +93,7 @@ class CategoryTests(unittest.TestCase):
         """
         Ensure we can not create a duplicated category
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code,
-                         status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        new_category_name = 'Soup'
+        new_category_name = 'soup'
         post_response = self.create_category(new_category_name)
         self.assertEqual(post_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Category.query.count(), 1)
@@ -123,11 +115,11 @@ class CategoryTests(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_category_name_1 = 'Soup'
+        new_category_name_1 = 'soup'
         post_response_1 = self.create_category(new_category_name_1)
         self.assertEqual(post_response_1.status_code,
                          status.HTTP_201_CREATED)
-        new_category_name_2 = 'Warning'
+        new_category_name_2 = 'warning'
         post_response_2 = self.create_category(new_category_name_2)
         self.assertEqual(post_response_2.status_code,
                          status.HTTP_201_CREATED)
@@ -155,7 +147,7 @@ class CategoryTests(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_category_name_1 = 'Soup'
+        new_category_name_1 = 'soup'
         post_response_1 = self.create_category(new_category_name_1)
         self.assertEqual(post_response_1.status_code,
                          status.HTTP_201_CREATED)
@@ -173,7 +165,7 @@ class CategoryTests(unittest.TestCase):
         self.assertEqual(put_response.status_code, status.HTTP_200_OK)
         get_response = self.test_client.get(
             new_category_url,
-            headers={"x-access-token":access_token}
+            headers={"x-access-token": access_token}
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
@@ -198,7 +190,6 @@ class CategoryTests(unittest.TestCase):
             headers={"x-access-token": access_token},
             content_type='application/json'
         )
-        res = json.loads(put_response_2.data.decode())
         self.assertEqual(put_response_2.status_code, 400)
 
     def test_delete_category(self):
@@ -212,7 +203,7 @@ class CategoryTests(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_category_name = 'Soup'
+        new_category_name = 'soup'
         post_response = self.create_category(new_category_name)
         self.assertEqual(post_response.status_code,
                          status.HTTP_201_CREATED)
