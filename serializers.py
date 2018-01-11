@@ -1,6 +1,5 @@
 # coding=utf-8
-import datetime
-from marshmallow import Schema, fields, pre_load
+from marshmallow import fields, pre_load
 from marshmallow import validate
 
 from flask_marshmallow import Marshmallow

@@ -3,7 +3,7 @@ from flask import url_for
 from flask import current_app
 
 
-class PaginationHelper():
+class PaginationHelper:
     """
     This is a helper method to create pagination
     """
