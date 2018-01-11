@@ -79,9 +79,6 @@ class AuthTestCase(unittest.TestCase):
         post_response = self.create_user(new_user_name, new_user_password)
         self.assertEqual(post_response.status_code,
                          status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
         self.assertEqual(User.query.count(), 1)
         post_response_data = json.loads(post_response.get_data(as_text=True))
         self.assertEqual(post_response_data['username'], new_user_name)
