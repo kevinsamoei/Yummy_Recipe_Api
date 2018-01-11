@@ -83,9 +83,9 @@ class RecipeCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_recipe_title = "Recipe"
+        new_recipe_title = "recipe"
         new_recipe_body = "This is the beginning of your hunger free life"
-        new_recipe_category = "Soup"
+        new_recipe_category = "soup"
         post_response = self.create_recipe(new_recipe_title,
                                            new_recipe_body,
                                            new_recipe_category)
@@ -107,6 +107,26 @@ class RecipeCase(unittest.TestCase):
                          new_recipe_body)
         self.assertEqual(get_response_data['category']['name'],
                          new_recipe_category)
+        data = {}
+        url = url_for('api.recipelistresource', _external=True)
+        post_response_2 = self.test_client.post(
+            url,
+            data=json.dumps(data),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        post_response_2_data = json.loads(post_response_2.data.decode())
+        self.assertEqual(post_response_2_data, {"Message": "No output data provided"})
+        self.assertEqual(post_response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        data_2 = {"title": "meat"}
+        post_response_3 = self.test_client.post(
+            url,
+            data=json.dumps(data_2),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        self.assertEqual(post_response_3.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     def test_create_duplicated_recipe(self):
         """
@@ -119,9 +139,9 @@ class RecipeCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_recipe_title = 'Recipe World'
+        new_recipe_title = 'recipe world'
         new_recipe_body = 'This is the beginning of your hunger-free life'
-        new_recipe_category = 'Soup'
+        new_recipe_category = 'soup'
         post_response = self.create_recipe(new_recipe_title,
                                            new_recipe_body,
                                            new_recipe_category)
@@ -169,18 +189,18 @@ class RecipeCase(unittest.TestCase):
         )
         res = json.loads(get_first_page_response_1.data.decode())
         self.assertEqual(res, {"Error": "No recipes. Create a recipe!"})
-        new_recipe_title1 = 'Recipe World'
+        new_recipe_title1 = 'recipe world'
         new_recipe_body1 = 'This is the beginning of your hunger-free life'
-        new_recipe_category1 = 'Soup'
+        new_recipe_category1 = 'soup'
         post_response = self.create_recipe(new_recipe_title1,
                                            new_recipe_body1,
                                            new_recipe_category1)
         self.assertEqual(post_response.status_code,
                          status.HTTP_201_CREATED)
         self.assertEqual(Recipe.query.count(), 1)
-        new_recipe_title2 = 'Meat Soup'
+        new_recipe_title2 = 'meat soup'
         new_recipe_body2 = 'This is the beginning of your hunger-free life'
-        new_recipe_category2 = 'Breakfast'
+        new_recipe_category2 = 'breakfast'
         post_response = self.create_recipe(new_recipe_title2,
                                            new_recipe_body2,
                                            new_recipe_category2)
@@ -215,12 +235,8 @@ class RecipeCase(unittest.TestCase):
             get_second_page_response.get_data(as_text=True))
         self.assertEqual(get_second_page_response.status_code,
                          status.HTTP_200_OK)
-        # self.assertIsNotNone(get_second_page_response_data['previous'])
         self.assertEqual(get_second_page_response_data,
                          {"Error": "No recipes. Create a recipe!"})
-        # self.assertIsNone(get_second_page_response_data['next'])
-        # self.assertIsNotNone(get_second_page_response_data['results'])
-        # self.assertEqual(len(get_second_page_response_data['results']), 0)
 
     def test_update_recipe(self):
         """
@@ -233,7 +249,7 @@ class RecipeCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_recipe_title_1 = 'Welcome'
+        new_recipe_title_1 = 'welcome'
         new_recipe_body_1 = 'This is the body'
         new_recipe_category_1 = 'soup'
         post_response = self.create_recipe(new_recipe_title_1,
@@ -245,7 +261,7 @@ class RecipeCase(unittest.TestCase):
         self.assertEqual(Recipe.query.count(), 1)
         post_response_data = json.loads(post_response.get_data(as_text=True))
         new_recipe_url = post_response_data['url']
-        new_recipe_title = "Meat Soup"
+        new_recipe_title = "meat soup"
         data = {'title': new_recipe_title}
         patch_response = self.test_client.put(
             new_recipe_url,
@@ -253,14 +269,14 @@ class RecipeCase(unittest.TestCase):
             data=json.dumps(data)
         )
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
-        new_recipe_title_2 = 'Welcome'
+        new_recipe_title_2 = 'welcome'
         new_recipe_body_2 = 'This is the body'
         new_recipe_category_2 = 'soup'
         post_response_2 = self.create_recipe(new_recipe_title_2,
                                              new_recipe_body_2,
                                              new_recipe_category_2)
         self.assertEqual(post_response_2.status_code, 201)
-        new_recipe_title_3 = 'Welcome'
+        new_recipe_title_3 = 'welcome'
         data_2 = {'title': new_recipe_title_3}
         patch_response_2 = self.test_client.put(
             new_recipe_url,
@@ -289,7 +305,7 @@ class RecipeCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        new_recipe_title_1 = 'Welcome'
+        new_recipe_title_1 = 'welcome'
         new_recipe_body_1 = 'This is the body'
         new_recipe_category_1 = 'soup'
         post_response = self.create_recipe(new_recipe_title_1,
