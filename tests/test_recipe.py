@@ -89,6 +89,7 @@ class RecipeCase(unittest.TestCase):
         post_response = self.create_recipe(new_recipe_title,
                                            new_recipe_body,
                                            new_recipe_category)
+        url = url_for('api.recipelistresource', _external=True)
         self.assertEqual(post_response.status_code, 201)
         self.assertEqual(Recipe.query.count(), 1)
         self.assertEqual(Category.query.count(), 1)
@@ -107,8 +108,17 @@ class RecipeCase(unittest.TestCase):
                          new_recipe_body)
         self.assertEqual(get_response_data['category']['name'],
                          new_recipe_category)
+        data_4 = {"title": new_recipe_title, "body": new_recipe_body, "category": new_recipe_category}
+        response_4 = self.test_client.post(
+            url,
+            data=json.dumps(data_4),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        response_4_data = json.loads(response_4.get_data(as_text=True))
+        self.assertEqual(response_4.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_4_data, {'error': 'A recipe with the same title already exists'})
         data = {}
-        url = url_for('api.recipelistresource', _external=True)
         post_response_2 = self.test_client.post(
             url,
             data=json.dumps(data),
@@ -125,8 +135,31 @@ class RecipeCase(unittest.TestCase):
             headers={"x-access-token": access_token},
             content_type='application/json'
         )
+        post_response_3_data = json.loads(post_response_3.get_data(as_text=True))
+        print(post_response_3_data)
+        self.assertEqual(post_response_3_data, {'body': ['Missing data for required field.'],
+                                                'category': {'name': ['Missing data for required field.']}})
         self.assertEqual(post_response_3.status_code, status.HTTP_400_BAD_REQUEST)
-
+        data_5 = {"title": "      ", "body": new_recipe_body, "category": new_recipe_category}
+        response_5 = self.test_client.post(
+            url,
+            data=json.dumps(data_5),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        response_5_data = json.loads(response_5.get_data(as_text=True))
+        self.assertEqual(response_5_data, {"Error": "Recipe title is not valid"})
+        self.assertEqual(response_5.status_code, 400)
+        data_6 = {"title": "kevin", "body": "        ", "category": new_recipe_category}
+        response_6 = self.test_client.post(
+            url,
+            data=json.dumps(data_6),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        response_6_data = json.loads(response_6.get_data(as_text=True))
+        self.assertEqual(response_6_data, {"Error": "Recipe body is not valid"})
+        self.assertEqual(response_6.status_code, 400)
 
     def test_create_duplicated_recipe(self):
         """
@@ -320,3 +353,11 @@ class RecipeCase(unittest.TestCase):
             headers={"x-access-token":access_token}
             )
         self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
+        url = '/api/recipes/1'
+        delete_response_2 = self.test_client.delete(
+            url,
+            headers={"x-access-token": access_token}
+        )
+        delete_response_2_data = json.loads(delete_response_2.get_data(as_text=True))
+        self.assertEqual(delete_response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(delete_response_2_data, {"error": "A recipe with the the id of 1 does not exist"})

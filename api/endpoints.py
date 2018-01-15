@@ -670,7 +670,8 @@ class RecipeResource(Resource):
 
         recipe = Recipe.query.filter_by(id=id).first()
         if not recipe:
-            return {"error": "A recipe with the the id of {0} does not exist".format(id)}
+            res = {"error": "A recipe with the the id of {0} does not exist".format(id)}
+            return res, status.HTTP_400_BAD_REQUEST
         try:
             recipe.delete(recipe)
             response = make_response(jsonify({"Message": "Deleted"}), status.HTTP_200_OK)
@@ -822,10 +823,12 @@ class RecipeListResource(Resource):
             return response, status.HTTP_400_BAD_REQUEST
         validated_title = Recipe.validate_recipe_title(title=recipe_title)
         if validated_title:
-            return {"Error": "Recipe title is not valid"}
+            res = {"Error": "Recipe title is not valid"}
+            return res, status.HTTP_400_BAD_REQUEST
         validated_body = Recipe.validate_recipe_body(body=recipe_body)
         if validated_body:
-            return {"Error": "Recipe body is not valid"}
+            res = {"Error": "Recipe body is not valid"}
+            return res, status.HTTP_400_BAD_REQUEST
         try:
             category_name = request_dict['category']['name'].lower()
             validate_category = Category.validate_category(name=category_name)
