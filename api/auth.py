@@ -23,7 +23,6 @@ def token_required(f):
             data = jwt.decode(token, 'topsecret')
             is_blacklisted_token = DisableTokens.check_blacklist(token)
             if is_blacklisted_token:
-                response = {"error": "Logged out. Log in again"}
                 return make_response(jsonify({'message': 'Logged out. log in again'}), 401)
             else:
                 current_user = User.query.filter_by(username=data['username']).first()

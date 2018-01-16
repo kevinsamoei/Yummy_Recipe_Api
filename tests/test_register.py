@@ -60,6 +60,34 @@ class AuthTestCase(unittest.TestCase):
                                     content_type='application/json',
                                     charset='UTF-8')
         self.assertEqual(res.status_code, 201)
+        data = {"username": "kev"}
+        response = self.test_client.post(
+            url,
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+
+        self.assertEqual(response_data, {"error": "'password'"})
+        self.assertEqual(response.status_code, 400)
+        data_2 = {"username": "kev", "password": "k"}
+        response_2 = self.test_client.post(
+            url,
+            data=json.dumps(data_2),
+            content_type='application/json'
+        )
+        response_2_data = json.loads(response_2.get_data(as_text=True))
+        self.assertEqual(response_2_data, {"error": "The password is too short"})
+        self.assertEqual(response_2.status_code, 400)
+        data_3 = {"username": "kev", "password": "P@ssword"}
+        response_3 = self.test_client.post(
+            url,
+            data=json.dumps(data_3),
+            content_type='application/json'
+        )
+        response_3_data = json.loads(response_3.get_data(as_text=True))
+        self.assertEqual(response_3_data, {'error': 'The password must include at least one number'})
+        self.assertEqual(response_3.status_code, 400)
 
     def test_already_registered_user(self):
         """Test that a user cannot be registered twice."""
@@ -102,6 +130,33 @@ class AuthTestCase(unittest.TestCase):
         # Assert that the status code is equal to 200
         self.assertEqual(login_res.status_code, 200)
         self.assertTrue(result['token'])
+        data = {}
+        response = self.test_client.post(
+            url,
+            data=json.dumps(data),
+            content_type='application.json'
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'error': 'No data provided'})
+        self.assertEqual(response.status_code, 400)
+        data_3 = {"username": "kevin", "password": "Password1"}
+        response_2 = self.test_client.post(
+            url,
+            data=json.dumps(data_3),
+            content_type='application/json'
+        )
+        response_2_data = json.loads(response_2.get_data(as_text=True))
+        self.assertEqual(response_2_data, {'error': 'Could not verify. Wrong username or password'})
+        self.assertEqual(response_2.status_code, 401)
+        data_4 = {"password": "P@ssword1"}
+        res_4 = self.test_client.post(
+            url,
+            data=json.dumps(data_4),
+            content_type='application/json'
+        )
+        res_4_data = json.loads(res_4.get_data(as_text=True))
+        self.assertEqual(res_4_data, {"error": "'username'"})
+        self.assertEqual(res_4.status_code, 400)
 
     def test_non_registered_user_login(self):
         """Test non registered users cannot login."""

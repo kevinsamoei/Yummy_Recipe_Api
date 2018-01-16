@@ -88,6 +88,45 @@ class CategoryTests(unittest.TestCase):
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
         self.assertEqual(get_response_data['name'], new_category_name)
+        url = '/api/categories/10'
+        get_response_2 = self.test_client.get(
+            url,
+            headers={"x-access-token": access_token}
+        )
+        get_response_2_data = json.loads(get_response_2.get_data(as_text=True))
+        self.assertEqual(get_response_2_data, {"Error": "No category with that Id"})
+        self.assertEqual(get_response_2.status_code, 404)
+        url = '/api/categories/'
+        data = {}
+        post_response_2 = self.test_client.post(
+            url,
+            data=json.dumps(data),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        post_response_2_data = json.loads(post_response_2.get_data(as_text=True))
+        self.assertEqual(post_response_2_data, {'message': 'No output data provided'})
+        self.assertEqual(post_response_2.status_code, 400)
+        data_2 = {"name": "k"}
+        post_response_3 = self.test_client.post(
+            url,
+            data=json.dumps(data_2),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        post_response_3_data = json.loads(post_response_3.get_data(as_text=True))
+        self.assertEqual(post_response_3_data, {'name': ['Shorter than minimum length 3.']})
+        self.assertEqual(post_response_3.status_code, 400)
+        data_3 = {"name": "       "}
+        post_response_4 = self.test_client.post(
+            url,
+            data=json.dumps(data_3),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        post_response_4_data = json.loads(post_response_4.get_data(as_text=True))
+        self.assertEqual(post_response_4_data, {'Error': 'Category name is not valid'})
+        self.assertEqual(post_response_4.status_code, 400)
 
     def test_create_duplicated_category(self):
         """
@@ -126,7 +165,7 @@ class CategoryTests(unittest.TestCase):
         url = url_for('api.categorylistresource', _external=True)
         get_response = self.test_client.get(
             url,
-            headers={"x-access-token":access_token}
+            headers={"x-access-token": access_token}
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
@@ -135,6 +174,28 @@ class CategoryTests(unittest.TestCase):
                          new_category_name_1)
         self.assertEqual(get_response_data['results'][1]['name'],
                          new_category_name_2)
+        url_2 = '/api/categories/?page=2'
+        response = self.test_client.get(
+            url_2,
+            headers={"x-access-token": access_token}
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {"Error": "No categories. Please add a category"})
+        url_2 = '/api/categories/?q=soup'
+        response_2 = self.test_client.get(
+            url_2,
+            headers={"x-access-token": access_token}
+        )
+        response_2_data = json.loads(response_2.get_data(as_text=True))
+        self.assertEqual(response_2_data['results'][0]['name'], 'soup')
+        self.assertEqual(response_2.status_code, 200)
+        url_3 = '/api/categories/?q=meat'
+        response_3 = self.test_client.get(
+            url_3,
+            headers={"x-access-token": access_token}
+        )
+        response_3_data = json.loads(response_3.get_data(as_text=True))
+        self.assertEqual(response_3_data, {"Error": "No categories. Please add a category"})
 
     def test_update_existing_category(self):
         """
@@ -191,6 +252,36 @@ class CategoryTests(unittest.TestCase):
             content_type='application/json'
         )
         self.assertEqual(put_response_2.status_code, 400)
+        url = '/api/categories/10'
+        put_response_4 = self.test_client.put(
+            url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        put_response_4_data = json.loads(put_response_4.get_data(as_text=True))
+        self.assertEqual(put_response_4_data, {"Error": "A category with that Id does not exist"})
+        self.assertEqual(put_response_4.status_code, 404)
+        data_5 = {}
+        put_response_5 = self.test_client.put(
+            new_category_url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_5),
+            content_type='application/json'
+        )
+        put_resonse_5_data = json.loads(put_response_5.get_data(as_text=True))
+        self.assertEqual(put_resonse_5_data, {"message": "No input data provided"})
+        self.assertEqual(put_response_5.status_code, 400)
+        data_6 = {"name": "k"}
+        put_response_6 = self.test_client.put(
+            new_category_url,
+            headers={"x-access-token": access_token},
+            data=json.dumps(data_6),
+            content_type='application/json'
+        )
+        put_resonse_6_data = json.loads(put_response_6.get_data(as_text=True))
+        self.assertEqual(put_resonse_6_data, {'name': ['Shorter than minimum length 3.']})
+        self.assertEqual(put_response_6.status_code, 400)
 
     def test_delete_category(self):
         """
@@ -215,3 +306,11 @@ class CategoryTests(unittest.TestCase):
             headers={"x-access-token":access_token}
         )
         self.assertEqual(del_response.status_code, status.HTTP_200_OK)
+        url = '/api/categories/10'
+        response = self.test_client.delete(
+            url,
+            headers={"x-access-token": access_token}
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {"error": "No category with that id exists"})
+        self.assertEqual(response.status_code, 400)

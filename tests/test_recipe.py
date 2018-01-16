@@ -108,6 +108,14 @@ class RecipeCase(unittest.TestCase):
                          new_recipe_body)
         self.assertEqual(get_response_data['category']['name'],
                          new_recipe_category)
+        url_2 = '/api/recipes/10'
+        get_response_2 = self.test_client.get(
+            url_2,
+            headers={"x-access-token": access_token}
+        )
+        get_response_data_2 = json.loads(get_response_2.get_data(as_text=True))
+        self.assertEqual(get_response_data_2, {'Error': 'A recipe with that Id does not exist'})
+        self.assertEqual(get_response_2.status_code, 404)
         data_4 = {"title": new_recipe_title, "body": new_recipe_body, "category": new_recipe_category}
         response_4 = self.test_client.post(
             url,

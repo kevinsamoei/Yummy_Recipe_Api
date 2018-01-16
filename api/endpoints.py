@@ -7,10 +7,10 @@ from flask_restful import Api, Resource
 
 from models import db, User, Category,Recipe, DisableTokens
 from serializers import UserSchema, CategorySchema, RecipeSchema
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from api import status
-from .pagination import PaginationHelper
+from .pagination import Pagination
 from .auth import token_required
 
 api_bp = Blueprint('api', __name__)
@@ -61,10 +61,14 @@ class RegisterUser(Resource):
         if not request_dict:
             response = {'user': 'No input data provided'}
             return response, status.HTTP_400_BAD_REQUEST
+        try:
+            username = request_dict['username']
+            password = request_dict['password']
+        except KeyError as error:
+            return {"error": str(error)}, 400
         errors = user_schema.validate(request_dict)
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
-        username = request_dict['username']
         existing_user = User.query.filter_by(username=username).first()
         if existing_user is not None:
             response = {'user': 'A user with the same name already exists'}
@@ -72,7 +76,7 @@ class RegisterUser(Resource):
         try:
             user = User(username=username)
             error_message, password_ok = \
-                user.check_password_strength_and_hash_if_ok(request_dict['password'])
+                user.check_password_strength_and_hash_if_ok(password)
             if password_ok:
                 user.add(user)
                 query = User.query.get(user.id)
@@ -80,7 +84,7 @@ class RegisterUser(Resource):
                 return result, status.HTTP_201_CREATED
             else:
                 return {'error': error_message}, status.HTTP_400_BAD_REQUEST
-        except OperationalError as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
             resp = {'error': str(e)}
             return resp, status.HTTP_400_BAD_REQUEST
@@ -168,23 +172,13 @@ class LogoutUser(Resource):
                     description: A user has been successfully logged out
 
                         """
-        if not current_user.id:
-            return jsonify({"Message": "Can not perform that operation. Please log in!"})
         # Get the auth token
         token = request.headers['x-access-token']
         if token:
-            res = DisableTokens.query.filter_by(token=token).first()
-            if res:
-                return jsonify({"Message": "Token already blacklisted. Please login again"})
             disable_token = DisableTokens(token=token)
-            try:
-                db.session.add(disable_token)
-                db.session.commit()
-                return make_response(jsonify({"Message": "Successfully logged out"}), 200)
-            except Exception as e:
-                return make_response(jsonify({"Message": "Fail!", "Error": e}), 200)
-        else:
-            return jsonify({"Status": "Fail", "message": "Provide a valid auth token"})
+            db.session.add(disable_token)
+            db.session.commit()
+            return make_response(jsonify({"Message": "Successfully logged out"}), 200)
 
 
 class ResetPassword(Resource):
@@ -217,9 +211,6 @@ class ResetPassword(Resource):
 
         """
 
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
-
         password_dict = request.get_json()
 
         user = User.query.filter_by(id=current_user.id).first()
@@ -249,7 +240,7 @@ class ResetPassword(Resource):
                 return {'error': error_message}, status.HTTP_400_BAD_REQUEST
         except SQLAlchemyError as e:
             db.session.rollback()
-            resp = jsonify({'error': str(e)})
+            resp = {'error': "An error occurred. Could not save"}
             return resp, status.HTTP_401_UNAUTHORIZED
 
 
@@ -282,15 +273,12 @@ class CategoryResource(Resource):
                   type: string
                   default: soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
-        try:
-            category = Category.query.get_or_404(id)
-            result = category_schema.dump(category).data
-            return result
-        except Exception:
+        category = Category.query.filter_by(id=id).first()
+        if not category:
             response = {"Error": "No category with that Id"}
             return response, status.HTTP_404_NOT_FOUND
+        result = category_schema.dump(category).data
+        return result
 
     @token_required
     def put(current_user, self, id):
@@ -328,10 +316,10 @@ class CategoryResource(Resource):
                                     type: string
                                     default: soup
                       """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
-        category = Category.query.get_or_404(id)
+        category = Category.query.filter_by(id=id).first()
+        if not category:
+            return {"Error": "A category with that Id does not exist"}, 404
         category_dict = request.get_json()
         if not category_dict:
             resp = {'message': 'No input data provided'}
@@ -374,11 +362,9 @@ class CategoryResource(Resource):
                     description: A single category successfully deleted
                 """
 
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
         category = Category.query.filter_by(id=id).first()
         if not category:
-            return {"error": "No category with that id exists"}
+            return {"error": "No category with that id exists"}, 400
         try:
             category.delete(category)
             response = make_response(jsonify({"message": "successfully deleted"}), status.HTTP_200_OK)
@@ -423,13 +409,11 @@ class CategoryListResource(Resource):
                   type: json
                   default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         per_page = request.args.get('limit', default=5, type=int)
         page = request.args.get('page', default=1, type=int)
 
-        pagination_helper = PaginationHelper(
+        pagination_helper = Pagination(
             request,
             query=Category.query.filter(
                     Category.user_id == current_user.id),
@@ -442,7 +426,7 @@ class CategoryListResource(Resource):
         search = request.args.get('q')
 
         if search:
-            categories = PaginationHelper(
+            categories = Pagination(
                 request,
                 query=Category.query.filter(
                     Category.user_id == current_user.id,
@@ -497,8 +481,6 @@ class CategoryListResource(Resource):
                   type: string
                   default: soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
         if not request_dict:
@@ -514,7 +496,7 @@ class CategoryListResource(Resource):
             return response, status.HTTP_400_BAD_REQUEST
         validated_name = Category.validate_category(name=category_name)
         if validated_name:
-            return {"Error": "Category name is not valid"}
+            return {"Error": "Category name is not valid"}, 400
         try:
             category = Category(category_name, user_id=current_user.id)
             category.add(category)
@@ -619,10 +601,10 @@ class RecipeResource(Resource):
                                   type: string
                                   default: Soup
                       """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
-        recipe = Recipe.query.get_or_404(id)
+        recipe = Recipe.query.filter_by(id=id).first()
+        if not recipe:
+            return {"Error": "A recipe with that Id does not exist"}, 400
         recipe_dict = request.get_json(force=True)
         if 'title' in recipe_dict:
             recipe_title = recipe_dict['title'].lower()
@@ -664,9 +646,6 @@ class RecipeResource(Resource):
                           200:
                             description: A single recipe successfully deleted
                         """
-
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         recipe = Recipe.query.filter_by(id=id).first()
         if not recipe:
@@ -722,13 +701,11 @@ class RecipeListResource(Resource):
                   type: json
                   default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         per_page = request.args.get('limit', default=5, type=int)
         page = request.args.get('page', default=1, type=int)
 
-        pagination_helper = PaginationHelper(
+        pagination_helper = Pagination(
             request,
             query=Recipe.query.filter(Recipe.user_id == current_user.id),
             resource_for_url='api.recipelistresource',
@@ -741,7 +718,7 @@ class RecipeListResource(Resource):
 
         if search:
             search.strip()
-            recipes = PaginationHelper(
+            recipes = Pagination(
                 request,
                 query=Recipe.query.filter(
                     Recipe.user_id == current_user.id,
@@ -805,8 +782,6 @@ class RecipeListResource(Resource):
                   type: string
                   default: Soup
         """
-        if not current_user.id:
-            return make_response(jsonify({'message': 'Can not perform that function'}))
 
         request_dict = request.get_json()
 
