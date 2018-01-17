@@ -3,7 +3,7 @@ import jwt
 
 from flask import request, jsonify, make_response
 from functools import wraps
-from models import User, DisableTokens
+from api.models import User, DisableTokens
 
 
 def token_required(f):

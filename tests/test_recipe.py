@@ -1,7 +1,7 @@
 import unittest
 import json
 from flask import url_for
-from models import Category, Recipe, db
+from api.models import Category, Recipe, db
 from api import status
 from app import create_app
 
@@ -34,7 +34,7 @@ class RecipeCase(unittest.TestCase):
             db.drop_all()
 
     def create_user(self, username, password):
-        url = url_for('api.registeruser', _external=True)
+        url = url_for('api/auth.registeruser', _external=True)
         data = {'username': username, 'password': password}
         response = self.test_client.post(
             url,
@@ -45,7 +45,7 @@ class RecipeCase(unittest.TestCase):
         return response
 
     def login_user(self, username, password):
-        url = url_for('api.loginuser', _external=True)
+        url = url_for('api/auth.loginuser', _external=True)
         data = {'username': username, 'password': password}
         response = self.test_client.post(
             url,
@@ -136,6 +136,16 @@ class RecipeCase(unittest.TestCase):
         post_response_2_data = json.loads(post_response_2.data.decode())
         self.assertEqual(post_response_2_data, {"Message": "No output data provided"})
         self.assertEqual(post_response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        data_x = {"title": "new", "body": new_recipe_body, "category": "        "}
+        post_response_x = self.test_client.post(
+            url,
+            data=json.dumps(data_x),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+        )
+        post_response_x_data = json.loads(post_response_x.data.decode())
+        self.assertEqual(post_response_x_data, {'Error': 'Not a valid category name'})
+        self.assertEqual(post_response_x.status_code, status.HTTP_400_BAD_REQUEST)
         data_2 = {"title": "meat"}
         post_response_3 = self.test_client.post(
             url,
@@ -278,6 +288,20 @@ class RecipeCase(unittest.TestCase):
                          status.HTTP_200_OK)
         self.assertEqual(get_second_page_response_data,
                          {"Error": "No recipes. Create a recipe!"})
+        url = 'api/recipes/?q=git'
+        response = self.test_client.get(
+            url,
+            headers={"x-access-token": access_token}
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'Error': 'No recipes. Create a recipe!'})
+        url_2 = 'api/recipes/?q=recipe'
+        response = self.test_client.get(
+            url_2,
+            headers={"x-access-token": access_token}
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data['results'][0]['title'], new_recipe_title1)
 
     def test_update_recipe(self):
         """
@@ -310,6 +334,16 @@ class RecipeCase(unittest.TestCase):
             data=json.dumps(data)
         )
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
+        url = '/api/recipes/10'
+        res = self.test_client.put(
+            url,
+            data=json.dumps(data),
+            headers={"x-access-token": access_token},
+            content_type='application/json'
+
+        )
+        res_data = json.loads(res.get_data(as_text=True))
+        self.assertEqual(res_data, {'Error': 'A recipe with that Id does not exist'})
         new_recipe_title_2 = 'welcome'
         new_recipe_body_2 = 'This is the body'
         new_recipe_category_2 = 'soup'

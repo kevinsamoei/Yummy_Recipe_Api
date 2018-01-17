@@ -2,7 +2,7 @@ import unittest
 import json
 from flask import url_for
 from app import create_app
-from models import db, User
+from api.models import db, User
 from api import status
 
 
@@ -33,7 +33,7 @@ class AuthTestCase(unittest.TestCase):
             db.drop_all()
 
     def create_user(self, username, password):
-        url = url_for('api.registeruser', _external=True)
+        url = url_for('api/auth.registeruser', _external=True)
         data = {'username': username, 'password': password}
         response = self.test_client.post(
             url,
@@ -44,7 +44,7 @@ class AuthTestCase(unittest.TestCase):
         return response
 
     def login_user(self, username, password):
-        url = url_for('api.loginuser', _external=True)
+        url = url_for('api/auth.loginuser', _external=True)
         data = {'username': username, 'password': password}
         response = self.test_client.post(
             url,
@@ -55,11 +55,15 @@ class AuthTestCase(unittest.TestCase):
 
     def test_registration(self):
         """Test user registration works correcty."""
-        url = url_for('api.registeruser', _external=True)
+        url = url_for('api/auth.registeruser', _external=True)
         res = self.test_client.post(url, data=json.dumps(self.user_data),
                                     content_type='application/json',
                                     charset='UTF-8')
         self.assertEqual(res.status_code, 201)
+
+    def test_register_with_missing_field(self):
+        """Test register when a field is not provided"""
+        url = url_for('api/auth.registeruser', _external=True)
         data = {"username": "kev"}
         response = self.test_client.post(
             url,
@@ -70,6 +74,10 @@ class AuthTestCase(unittest.TestCase):
 
         self.assertEqual(response_data, {"error": "'password'"})
         self.assertEqual(response.status_code, 400)
+
+    def test_register_with_invalid_inputs(self):
+        """Test register when an input field is invalid"""
+        url = url_for('api/auth.registeruser', _external=True)
         data_2 = {"username": "kev", "password": "k"}
         response_2 = self.test_client.post(
             url,
@@ -79,6 +87,10 @@ class AuthTestCase(unittest.TestCase):
         response_2_data = json.loads(response_2.get_data(as_text=True))
         self.assertEqual(response_2_data, {"error": "The password is too short"})
         self.assertEqual(response_2.status_code, 400)
+
+    def test_register_when_password_has_no_number(self):
+        """Test if register fails when password has no num"""
+        url = url_for('api/auth.registeruser', _external=True)
         data_3 = {"username": "kev", "password": "P@ssword"}
         response_3 = self.test_client.post(
             url,
@@ -89,9 +101,58 @@ class AuthTestCase(unittest.TestCase):
         self.assertEqual(response_3_data, {'error': 'The password must include at least one number'})
         self.assertEqual(response_3.status_code, 400)
 
+    def test_register_with_long_password(self):
+        """Test if register fails when a long password is given"""
+        url = url_for('api/auth.registeruser', _external=True)
+        data_4 = {"username": "kev", "password": "P@ssword1ThereisnothingsimpleaboutcreatingeffectiveJavaScript code"}
+        response_4 = self.test_client.post(
+            url,
+            data=json.dumps(data_4),
+            content_type='application/json'
+        )
+        response_4_data = json.loads(response_4.get_data(as_text=True))
+        self.assertEqual(response_4_data, {'error': 'The password is too long'})
+        self.assertEqual(response_4.status_code, 400)
+
+    def test_register_when_no_uppercase_letter_pwd(self):
+        """Password must contain an uppercase letter"""
+        url = url_for('api/auth.registeruser', _external=True)
+        data_5 = {"username": "kev", "password": "p@ssword1"}
+        response_5 = self.test_client.post(
+            url,
+            data=json.dumps(data_5),
+            content_type='application/json'
+        )
+        response_5_data = json.loads(response_5.get_data(as_text=True))
+        self.assertEqual(response_5_data, {'error': 'The password must include at least one uppercase letter'})
+
+    def test_register_with_no_symbol_in_password(self):
+        """Password must have at least on symbol"""
+        url = url_for('api/auth.registeruser', _external=True)
+        data_6 = {"username": "kev", "password": "Password1"}
+        response_6 = self.test_client.post(
+            url,
+            data=json.dumps(data_6),
+            content_type='application/json'
+        )
+        response_6_data = json.loads(response_6.get_data(as_text=True))
+        self.assertEqual(response_6_data, {'error': 'The password must include at least one symbol'})
+
+    def test_register_when_password_has_no_lowercase(self):
+        """Password must have at least one lowercase letter"""
+        url = url_for('api/auth.registeruser', _external=True)
+        data_7 = {"username": "kev", "password": "P@SSWORD1"}
+        response_7 = self.test_client.post(
+            url,
+            data=json.dumps(data_7),
+            content_type='application/json'
+        )
+        response_7_data = json.loads(response_7.get_data(as_text=True))
+        self.assertEqual(response_7_data, {'error': 'The password must include at least one lowercase letter'})
+
     def test_already_registered_user(self):
         """Test that a user cannot be registered twice."""
-        url = url_for('api.registeruser', _external=True)
+        url = url_for('api/auth.registeruser', _external=True)
         res = self.test_client.post(url, data=json.dumps(self.user_data),
                                     content_type='application/json')
         self.assertEqual(res.status_code, 201)
@@ -117,7 +178,7 @@ class AuthTestCase(unittest.TestCase):
                                                 self.test_user_password)
         self.assertEqual(create_user_response.status_code,
                          status.HTTP_201_CREATED)
-        url = url_for('api.loginuser', _external=True)
+        url = url_for('api/auth.loginuser', _external=True)
         res = self.test_client.post(url,
                                     data=json.dumps(self.user_data),
                                     content_type='application/json')
@@ -130,6 +191,10 @@ class AuthTestCase(unittest.TestCase):
         # Assert that the status code is equal to 200
         self.assertEqual(login_res.status_code, 200)
         self.assertTrue(result['token'])
+
+    def test_login_with_no_data(self):
+        """Must contain all fields"""
+        url = url_for('api/auth.loginuser', _external=True)
         data = {}
         response = self.test_client.post(
             url,
@@ -139,6 +204,14 @@ class AuthTestCase(unittest.TestCase):
         response_data = json.loads(response.get_data(as_text=True))
         self.assertEqual(response_data, {'error': 'No data provided'})
         self.assertEqual(response.status_code, 400)
+
+    def test_login_with_wrong_password(self):
+        """Should fail when wrong password is provided"""
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code,
+                         status.HTTP_201_CREATED)
+        url = url_for('api/auth.loginuser', _external=True)
         data_3 = {"username": "kevin", "password": "Password1"}
         response_2 = self.test_client.post(
             url,
@@ -148,6 +221,10 @@ class AuthTestCase(unittest.TestCase):
         response_2_data = json.loads(response_2.get_data(as_text=True))
         self.assertEqual(response_2_data, {'error': 'Could not verify. Wrong username or password'})
         self.assertEqual(response_2.status_code, 401)
+
+    def test_login_with_missing_field(self):
+        """Should fail when their is missing data"""
+        url = url_for('api/auth.loginuser', _external=True)
         data_4 = {"password": "P@ssword1"}
         res_4 = self.test_client.post(
             url,
@@ -166,7 +243,7 @@ class AuthTestCase(unittest.TestCase):
             'password': 'pass'
         }
         # send a POST request to /auth/login with the data above
-        url = url_for('api.loginuser', _external=True)
+        url = url_for('api/auth.loginuser', _external=True)
         res = self.test_client.post(url,
                                     data=json.dumps(not_a_user),
                                     content_type='application/json'
@@ -182,7 +259,7 @@ class AuthTestCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        url = url_for('api.logoutuser', _external=True)
+        url = url_for('api/auth.logoutuser', _external=True)
         response = self.test_client.post(
             url,
             headers={"x-access-token": access_token}
@@ -197,7 +274,7 @@ class AuthTestCase(unittest.TestCase):
         result = self.login_user(
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
-        url = url_for('api.logoutuser', _external=True)
+        url = url_for('api/auth.logoutuser', _external=True)
         response = self.test_client.post(
             url,
             headers={"x-access-token": access_token}
@@ -221,7 +298,7 @@ class AuthTestCase(unittest.TestCase):
             self.test_username, self.test_user_password)
         access_token = json.loads(result.data.decode())['token']
         data = {"old": "P@ssword1", "new": "P@ssw0rd"}
-        url = url_for('api.resetpassword', _external=True)
+        url = url_for('api/auth.resetpassword', _external=True)
         response = self.test_client.post(
             url,
             headers={"x-access-token": access_token},
@@ -229,7 +306,17 @@ class AuthTestCase(unittest.TestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        data_2 = {"old": "P@ssword1", "new": "P@ssw0rd"}
+
+    def test_reset_password_when_old_password_is_wrong(self):
+        """Should fail if old password is wrong"""
+        url = url_for('api/auth.resetpassword', _external=True)
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code, 201)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
+        data_2 = {"old": "P@ssw0rd", "new": "P@ssword1"}
         response_2 = self.test_client.post(
             url,
             headers={"x-access-token": access_token},
@@ -239,6 +326,16 @@ class AuthTestCase(unittest.TestCase):
         response_2_data = json.loads(response_2.data.decode())
         self.assertEqual(response_2_data, {'status': 'error', 'message': 'old password is not correct'})
         self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reset_password_when_no_data_provided(self):
+        """Fail when no data is provided"""
+        url = url_for('api/auth.resetpassword', _external=True)
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code, 201)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
         data_3 = {}
         response_3 = self.test_client.post(
             url,
@@ -249,6 +346,16 @@ class AuthTestCase(unittest.TestCase):
         response_3_data = json.loads(response_3.data.decode())
         self.assertTrue(response_3_data, {'message': 'No input data provided'})
         self.assertEqual(response_3.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reset_when_missing_one_data(self):
+        """All data should be provided to pass"""
+        url = url_for('api/auth.resetpassword', _external=True)
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code, 201)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
         data_4 = {"old":"P@ssw0rd"}
         response_4 = self.test_client.post(
             url,
@@ -259,7 +366,17 @@ class AuthTestCase(unittest.TestCase):
         response_4_data = json.loads(response_4.data.decode())
         self.assertEqual(response_4_data, {"error": "'new'"})
         self.assertEqual(response_4.status_code, status.HTTP_400_BAD_REQUEST)
-        data_5 = {"old": "P@ssw0rd", "new": "P@ssword"}
+
+    def test_reset_when_password_is_invalid(self):
+        """Password must be valid"""
+        url = url_for('api/auth.resetpassword', _external=True)
+        create_user_response = self.create_user(self.test_username,
+                                                self.test_user_password)
+        self.assertEqual(create_user_response.status_code, 201)
+        result = self.login_user(
+            self.test_username, self.test_user_password)
+        access_token = json.loads(result.data.decode())['token']
+        data_5 = {"old": "P@ssword1", "new": "P@ssword"}
         response_5 = self.test_client.post(
             url,
             headers={"x-access-token": access_token},

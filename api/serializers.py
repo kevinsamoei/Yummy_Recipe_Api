@@ -14,7 +14,7 @@ class UserSchema(ma.Schema):
     id = fields.Integer(dump_only=True)
     username = fields.String(required=True, validate=validate.Length(3))
     hashed_password = fields.String()
-    url = ma.URLFor('api.registeruser', id='<id>', _external=True)
+    url = ma.URLFor('api/auth.registeruser', id='<id>', _external=True)
 
 
 class CategorySchema(ma.Schema):
@@ -23,7 +23,7 @@ class CategorySchema(ma.Schema):
     """
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True, validate=validate.Length(3))
-    url = ma.URLFor('api.categoryresource', id='<id>', _external=True)
+    url = ma.URLFor('api/categories.categoryresource', id='<id>', _external=True)
     recipes = fields.Nested('RecipeSchema', many=True,
                             exclude=('category',))
 
@@ -35,8 +35,6 @@ class RecipeSchema(ma.Schema):
     id = fields.Integer(dump_only=True)
     title = fields.String(required=True, validate=validate.Length(1))
     body = fields.String(required=True, validate=validate.Length(3))
-    # created_timestamp = fields.Integer(dump_only=True, default=datetime.datetime.now())
-    # modified_timestamp = fields.Integer(dump_only=True, default=datetime.datetime.now())
     user_id = fields.Integer(dump_only=True)
     url = ma.URLFor('api.reciperesource', id='<id>', _external=True)
     category = fields.Nested(CategorySchema, only=['id', 'url', 'name'],
