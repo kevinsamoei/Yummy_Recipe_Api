@@ -220,7 +220,7 @@ class CategoryTests(unittest.TestCase):
             headers={"x-access-token": access_token}
         )
         response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {"Error": "No categories. Please add a category"})
+        self.assertEqual(response_data, {'Error': 'Category not found'})
 
     def test_category_with_search(self):
         """Retrieve a searcged category"""
