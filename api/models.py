@@ -31,6 +31,16 @@ class AddUpdateDelete():
         db.session.delete(resource)
         return db.session.commit()
 
+    @staticmethod
+    def validate_data(ctx):
+        """
+        :param ctx:
+        :return: True if pattern is matched otherwise return false
+        """
+        if re.search(r"^[a-zA-Z0-9]+$", ctx) is None:
+            return "Must contain no spaces and should be a string", False
+        return "", True
+
 
 class User(db.Model, AddUpdateDelete):
     """
@@ -69,6 +79,20 @@ class User(db.Model, AddUpdateDelete):
         self.hashed_password = password_context.encrypt(password)
         return "", True
 
+    @classmethod
+    def is_unique(cls, username):
+        """
+        Ensure the recipe to be created will be unique
+        """
+        existing_user = cls.query.filter_by(username=username).first()
+        if existing_user is None:
+            return True
+        else:
+            if existing_user.id == id:
+                return True
+            else:
+                return False
+
     def __init__(self, username):
         self.username = username
 
@@ -98,15 +122,6 @@ class Category(db.Model, AddUpdateDelete):
                 return True
             else:
                 return False
-
-    @classmethod
-    def validate_category(cls, name):
-        """
-        :param name:
-        :return: True if pattern is matched otherwise return false
-        """
-        if re.search(r'[A-Za-z0-9]+$', name) is None:
-            return "Not a valid name for a category", False
 
 
 class Recipe(db.Model, AddUpdateDelete):
@@ -145,22 +160,14 @@ class Recipe(db.Model, AddUpdateDelete):
                 return False
 
     @classmethod
-    def validate_recipe_title(cls, title):
+    def validate_recipe(cls, ctx):
         """
-        :param title:
+        :param ctx:
         :return: True if pattern is matched otherwise return false
         """
-        if re.search(r'[A-Za-z0-9]+$', title) is None:
-            return "Not a valid name for a recipe", False
-
-    @classmethod
-    def validate_recipe_body(cls, body):
-        """
-        :param body:
-        :return: True if pattern is matched otherwise return false
-        """
-        if re.search(r'[A-Za-z0-9]+$', body) is None:
-            return "Not a valid name for a recipe", False
+        if re.search(r"^[a-zA-Z0-9]", ctx) is None:
+            return "Must contain no spaces and should be a string", False
+        return "", True
 
 
 class DisableTokens(db.Model):

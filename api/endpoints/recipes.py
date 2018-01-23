@@ -292,34 +292,32 @@ class RecipeListResource(Resource):
         if not Recipe.is_unique(id=0, title=recipe_title):
             response = {'error': 'A recipe with the same title already exists'}
             return response, status.HTTP_400_BAD_REQUEST
-        validated_title = Recipe.validate_recipe_title(title=recipe_title)
-        if validated_title:
-            res = {"Error": "Recipe title is not valid"}
-            return res, status.HTTP_400_BAD_REQUEST
-        validated_body = Recipe.validate_recipe_body(body=recipe_body)
-        if validated_body:
-            res = {"Error": "Recipe body is not valid"}
-            return res, status.HTTP_400_BAD_REQUEST
-
+        error, validated_title = Recipe.validate_recipe(ctx=recipe_title)
+        if not validated_title:
+            return {"error": error}, 400
+        error_body, validated_body = Recipe.validate_recipe(ctx=recipe_body)
+        if not validated_body:
+            return {"error": error_body}, 400
         category_name = request_dict['category']['name'].lower()
-        validate_category = Category.validate_category(name=category_name)
-        if validate_category:
-            return {"Error": "Not a valid category name"}, 400
-        category = Category.query.filter_by(name=category_name).first()
-        if category is None:
-            category = Category(name=category_name, user_id=current_user.id)
-            db.session.add(category)
-        recipe = Recipe(
-            title=recipe_title,
-            body=recipe_body,
-            category=category,
-            user=current_user
-        )
-        recipe.add(recipe)
-        query = Recipe.query.get(recipe.id)
-        result = recipe_schema.dump(query).data
+        error_category, validate_data = Category.validate_data(ctx=category_name)
+        if validate_data:
+            category = Category.query.filter_by(name=category_name).first()
+            if category is None:
+                category = Category(name=category_name, user_id=current_user.id)
+                db.session.add(category)
+            recipe = Recipe(
+                title=recipe_title,
+                body=recipe_body,
+                category=category,
+                user=current_user
+            )
+            recipe.add(recipe)
+            query = Recipe.query.get(recipe.id)
+            result = recipe_schema.dump(query).data
 
-        return make_response(jsonify(result), status.HTTP_201_CREATED)
+            return make_response(jsonify(result), status.HTTP_201_CREATED)
+        else:
+            return {"error": error_category}, 400
 
 
 api.add_resource(RecipeListResource, '/recipes/')

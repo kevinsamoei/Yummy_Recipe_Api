@@ -206,7 +206,7 @@ class CategoryListResource(Resource):
 
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
-            return jsonify({"Error": "No categories. Please add a category"})
+            return jsonify({"Error": "Category not found"})
         return result
         # categories = Category.query.all()
         # results = category_schema.dump(categories, many=True).data
@@ -256,15 +256,15 @@ class CategoryListResource(Resource):
         if not Category.is_unique(id=0, name=category_name):
             response = {"error": "A category with the same name already exists"}
             return response, status.HTTP_400_BAD_REQUEST
-        validated_name = Category.validate_category(name=category_name)
+        error, validated_name = Category.validate_data(ctx=category_name)
         if validated_name:
-            return {"Error": "Category name is not valid"}, 400
-
-        category = Category(category_name, user_id=current_user.id)
-        category.add(category)
-        query = Category.query.get(category.id)
-        result = category_schema.dump(query).data
-        return result, status.HTTP_201_CREATED
+            category = Category(category_name, user_id=current_user.id)
+            category.add(category)
+            query = Category.query.get(category.id)
+            result = category_schema.dump(query).data
+            return result, status.HTTP_201_CREATED
+        else:
+            return {"error": error}, 400
 
 
 api.add_resource(CategoryListResource, '/')

@@ -10,6 +10,7 @@ from api.serializers import UserSchema
 from api import status
 from api.auth import token_required
 
+
 api_bp = Blueprint('api/auth', __name__)
 user_schema = UserSchema()
 api = Api(api_bp)
@@ -56,28 +57,31 @@ class RegisterUser(Resource):
         if not request_dict:
             response = {'user': 'No input data provided'}
             return response, status.HTTP_400_BAD_REQUEST
-        try:
-            username = request_dict['username']
-            password = request_dict['password']
-        except KeyError as error:
-            return {"error": str(error)}, 400
         errors = user_schema.validate(request_dict)
         if errors:
             return errors, status.HTTP_400_BAD_REQUEST
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user is not None:
-            response = {'user': 'A user with the same name already exists'}
+        try:
+            username = request_dict['username'].lower()
+            password = request_dict['password']
+        except KeyError as error:
+            return {"error": str(error)}, 400
+        if not User.is_unique(username=username):
+            response = {"error": "A user with the same name already exists"}
             return response, status.HTTP_400_BAD_REQUEST
-        user = User(username=username)
-        error_message, password_ok = \
-            user.check_password_strength_and_hash_if_ok(password)
-        if password_ok:
-            user.add(user)
-            query = User.query.get(user.id)
-            result = user_schema.dump(query).data
-            return result, status.HTTP_201_CREATED
+        error, validated_name = User.validate_data(ctx=username)
+        if validated_name:
+            user = User(username=username)
+            error_message, password_ok = \
+                user.check_password_strength_and_hash_if_ok(password)
+            if password_ok:
+                user.add(user)
+                query = User.query.get(user.id)
+                result = user_schema.dump(query).data
+                return result, status.HTTP_201_CREATED
+            else:
+                return {'error': error_message}, status.HTTP_400_BAD_REQUEST
         else:
-            return {'error': error_message}, status.HTTP_400_BAD_REQUEST
+            return {"error": error}, 400
 
 
 class LoginUser(Resource):

@@ -155,7 +155,7 @@ class CategoryTests(unittest.TestCase):
             content_type='application/json'
         )
         post_response_4_data = json.loads(post_response_4.get_data(as_text=True))
-        self.assertEqual(post_response_4_data, {'Error': 'Category name is not valid'})
+        self.assertEqual(post_response_4_data, {'error': 'Must contain no spaces and should be a string'})
         self.assertEqual(post_response_4.status_code, 400)
 
     def test_create_duplicated_category(self):

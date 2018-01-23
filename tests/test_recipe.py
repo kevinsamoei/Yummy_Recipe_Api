@@ -144,7 +144,7 @@ class RecipeCase(unittest.TestCase):
             content_type='application/json'
         )
         post_response_x_data = json.loads(post_response_x.data.decode())
-        self.assertEqual(post_response_x_data, {'Error': 'Not a valid category name'})
+        self.assertEqual(post_response_x_data, {'error': 'Must contain no spaces and should be a string'})
         self.assertEqual(post_response_x.status_code, status.HTTP_400_BAD_REQUEST)
         data_2 = {"title": "meat"}
         post_response_3 = self.test_client.post(
@@ -154,7 +154,6 @@ class RecipeCase(unittest.TestCase):
             content_type='application/json'
         )
         post_response_3_data = json.loads(post_response_3.get_data(as_text=True))
-        print(post_response_3_data)
         self.assertEqual(post_response_3_data, {'body': ['Missing data for required field.'],
                                                 'category': {'name': ['Missing data for required field.']}})
         self.assertEqual(post_response_3.status_code, status.HTTP_400_BAD_REQUEST)
@@ -166,7 +165,7 @@ class RecipeCase(unittest.TestCase):
             content_type='application/json'
         )
         response_5_data = json.loads(response_5.get_data(as_text=True))
-        self.assertEqual(response_5_data, {"Error": "Recipe title is not valid"})
+        self.assertEqual(response_5_data, {'error': 'Must contain no spaces and should be a string'})
         self.assertEqual(response_5.status_code, 400)
         data_6 = {"title": "kevin", "body": "        ", "category": new_recipe_category}
         response_6 = self.test_client.post(
@@ -176,7 +175,7 @@ class RecipeCase(unittest.TestCase):
             content_type='application/json'
         )
         response_6_data = json.loads(response_6.get_data(as_text=True))
-        self.assertEqual(response_6_data, {"Error": "Recipe body is not valid"})
+        self.assertEqual(response_6_data, {'error': 'Must contain no spaces and should be a string'})
         self.assertEqual(response_6.status_code, 400)
 
     def test_create_duplicated_recipe(self):
