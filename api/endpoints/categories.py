@@ -42,7 +42,9 @@ class CategoryResource(Resource):
                   type: string
                   default: soup
         """
-        category = Category.query.filter_by(id=id).first()
+        if not current_user.id:
+            return "Error"
+        category = Category.query.get_or_404(id)
         if not category:
             response = {"Error": "No category with that Id"}
             return response, status.HTTP_404_NOT_FOUND
@@ -171,7 +173,8 @@ class CategoryListResource(Resource):
                   type: json
                   default: Soup
         """
-
+        if not current_user.id:
+            return "Awesome"
         per_page = request.args.get('limit', default=5, type=int)
         page = request.args.get('page', default=1, type=int)
 
@@ -243,7 +246,8 @@ class CategoryListResource(Resource):
                   type: string
                   default: soup
         """
-
+        if not current_user.id:
+            return "Awesome"
         request_dict = request.get_json()
         if not request_dict:
             resp = {'message': 'No output data provided'}

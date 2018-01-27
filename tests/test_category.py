@@ -22,7 +22,8 @@ class CategoryTests(unittest.TestCase):
         db.session.remove()
         db.drop_all()
 
-    def get_accept_content_type_headers(self):
+    @staticmethod
+    def get_accept_content_type_headers():
         return {
             'Accept': 'application/json',
             'Content-Type': 'application/json'

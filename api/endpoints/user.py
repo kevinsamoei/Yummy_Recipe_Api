@@ -75,8 +75,7 @@ class RegisterUser(Resource):
                 user.check_password_strength_and_hash_if_ok(password)
             if password_ok:
                 user.add(user)
-                query = User.query.get(user.id)
-                result = user_schema.dump(query).data
+                result = {"message": "User successfully registered"}
                 return result, status.HTTP_201_CREATED
             else:
                 return {'error': error_message}, status.HTTP_400_BAD_REQUEST
