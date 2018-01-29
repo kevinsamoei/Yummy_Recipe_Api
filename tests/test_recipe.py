@@ -1,404 +1,251 @@
-import unittest
 import json
 from flask import url_for
-from api.models import Category, Recipe, db
+from api.models import Recipe
 from api import status
-from app import create_app
+from .base_tests import BaseTestCase
 
 
-class RecipeCase(unittest.TestCase):
+class RecipeCase(BaseTestCase):
     """Test case for the authentication blueprint."""
 
     def setUp(self):
         """Set up test variables."""
-        self.app = create_app("test_config")
-        # initialize the test client
-        self.client = self.app.test_client
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        self.test_client = self.app.test_client()
-        self.test_username = 'kevin'
-        self.test_user_password = 'P@ssword1'
-        # This is the user test json data with a predefined email and password
-        self.user_data = {
-            "username": "kevin",
-            "password": "P@ssword1"
-        }
-
-        with self.app_context:
-            # create all tables
-            db.create_all()
-
-    def tearDown(self):
-            db.session.remove()
-            db.drop_all()
-
-    def create_user(self, username, password):
-        url = url_for('api/auth.registeruser', _external=True)
-        data = {'username': username, 'password': password}
-        response = self.test_client.post(
-            url,
-            content_type='application/json',
-            charset='UTF-8',
-            data=json.dumps(data)
-        )
-        return response
-
-    def login_user(self, username, password):
-        url = url_for('api/auth.loginuser', _external=True)
-        data = {'username': username, 'password': password}
-        response = self.test_client.post(
-            url,
-            content_type='application/json',
-            charset='UTF-8',
-            data=json.dumps(data))
-        return response
+        super(RecipeCase, self).setUp()
+        self.recipe_url = url_for('api.recipelistresource', _external=True)
+        self.register = self.client.post('api/auth/register/', data=json.dumps(self.user_data),
+                                         content_type='application/json')
+        self.login_response = self.login_user(self.test_username, self.test_user_password)
+        self.access_token = json.loads(self.login_response.data.decode())['token']
+        self.recipe_title = "recipe"
+        self.recipe_body = "This is the beginning of your hunger free life"
+        self.recipe_category = "soup"
+        self.data = {"title": self.recipe_title, "body": self.recipe_body, "category": self.recipe_category}
+        self.create_response = self.create_recipe(self.recipe_title, self.recipe_body, self.recipe_category)
 
     def create_recipe(self, title, body, category):
         """
         create a recipe item
         """
-        self.create_user(self.test_username,
-                         self.test_user_password)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
         url = url_for('api.recipelistresource', _external=True)
         data = {"title": title, "body": body, "category": category}
         response = self.test_client.post(
             url,
-            headers={"x-access-token": access_token},
+            headers={"x-access-token": self.access_token},
             data=json.dumps(data),
             content_type='application/json'
         )
         return response
 
-    def test_create_and_retrieve_recipe(self):
+    def test_create_recipe(self):
         """
         Ensure we can create a new message and then retrieves it
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code, 201)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        new_recipe_title = "recipe"
+        new_recipe_title = "meat"
         new_recipe_body = "This is the beginning of your hunger free life"
         new_recipe_category = "soup"
         post_response = self.create_recipe(new_recipe_title,
                                            new_recipe_body,
                                            new_recipe_category)
-        url = url_for('api.recipelistresource', _external=True)
         self.assertEqual(post_response.status_code, 201)
-        self.assertEqual(Recipe.query.count(), 1)
-        self.assertEqual(Category.query.count(), 1)
-        post_response_data = json.loads(post_response.get_data(as_text=True))
-        self.assertEqual(post_response_data['title'], new_recipe_title)
-        new_recipe_url = post_response_data['url']
+        self.assertEqual(Recipe.query.count(), 2)
+
+    def test_retrieve_recipe(self):
+        """Test a user can retrieve a created recipe"""
         get_response = self.test_client.get(
-            new_recipe_url,
-            headers={"x-access-token": access_token}
+            'api/recipes/1',
+            headers={"x-access-token": self.access_token}
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
         self.assertEqual(get_response_data['title'],
-                         new_recipe_title)
-        self.assertEqual(get_response_data['body'],
-                         new_recipe_body)
-        self.assertEqual(get_response_data['category']['name'],
-                         new_recipe_category)
-        url_2 = '/api/recipes/10'
-        get_response_2 = self.test_client.get(
-            url_2,
-            headers={"x-access-token": access_token}
-        )
-        get_response_data_2 = json.loads(get_response_2.get_data(as_text=True))
-        self.assertEqual(get_response_data_2, {'Error': 'A recipe with that Id does not exist'})
-        self.assertEqual(get_response_2.status_code, 404)
-        data_4 = {"title": new_recipe_title, "body": new_recipe_body, "category": new_recipe_category}
-        response_4 = self.test_client.post(
+                         self.recipe_title)
+
+    def test_retrieve_recipe_not_found(self):
+        """Retrieve a recipe that does not exist"""
+        url = '/api/recipes/10'
+        get_response = self.test_client.get(
             url,
-            data=json.dumps(data_4),
-            headers={"x-access-token": access_token},
-            content_type='application/json'
+            headers={"x-access-token": self.access_token}
         )
-        response_4_data = json.loads(response_4.get_data(as_text=True))
-        self.assertEqual(response_4.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response_4_data, {'error': 'A recipe with the same title already exists'})
-        data = {}
-        post_response_2 = self.test_client.post(
-            url,
+        get_response_data = json.loads(get_response.get_data(as_text=True))
+        self.assertEqual(get_response_data['Error'], 'A recipe with Id 10 does not exist')
+        self.assertEqual(get_response.status_code, 404)
+
+    def test_create_existing_recipe(self):
+        """Create an existing recipe"""
+        data = {"title": self.recipe_title, "body": self.recipe_body, "category": self.recipe_category}
+        response = self.test_client.post(
+            self.recipe_url,
             data=json.dumps(data),
-            headers={"x-access-token": access_token},
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        post_response_2_data = json.loads(post_response_2.data.decode())
-        self.assertEqual(post_response_2_data, {"Message": "No output data provided"})
-        self.assertEqual(post_response_2.status_code, status.HTTP_400_BAD_REQUEST)
-        data_x = {"title": "new", "body": new_recipe_body, "category": "        "}
-        post_response_x = self.test_client.post(
-            url,
-            data=json.dumps(data_x),
-            headers={"x-access-token": access_token},
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response_data['message'], 'A recipe with the same title already exists')
+
+    def test_create_recipe_with_no_data(self):
+        """Create recipe with no data provided"""
+        data = {}
+        post_response = self.test_client.post(
+            self.recipe_url,
+            data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        post_response_x_data = json.loads(post_response_x.data.decode())
-        self.assertEqual(post_response_x_data, {'error': 'Must contain no spaces and should be a string'})
-        self.assertEqual(post_response_x.status_code, status.HTTP_400_BAD_REQUEST)
-        data_2 = {"title": "meat"}
-        post_response_3 = self.test_client.post(
-            url,
-            data=json.dumps(data_2),
-            headers={"x-access-token": access_token},
+        post_response_data = json.loads(post_response.data.decode())
+        self.assertEqual(post_response_data, {"message": "No output data provided"})
+        self.assertEqual(post_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_recipe_with_invalid_category(self):
+        """Create recipe with invalid data"""
+        data = {"title": "new", "body": self.recipe_body, "category": "        "}
+        post_response = self.test_client.post(
+            self.recipe_url,
+            data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        post_response_3_data = json.loads(post_response_3.get_data(as_text=True))
-        self.assertEqual(post_response_3_data, {'body': ['Missing data for required field.'],
-                                                'category': {'name': ['Missing data for required field.']}})
-        self.assertEqual(post_response_3.status_code, status.HTTP_400_BAD_REQUEST)
-        data_5 = {"title": "      ", "body": new_recipe_body, "category": new_recipe_category}
-        response_5 = self.test_client.post(
-            url,
-            data=json.dumps(data_5),
-            headers={"x-access-token": access_token},
+        post_response_data = json.loads(post_response.data.decode())
+        self.assertEqual(post_response_data, {'message': 'Must contain no spaces and should be a string'})
+        self.assertEqual(post_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_with_missing_data(self):
+        """Missing one required data"""
+        data = {"title": "meat", "category": self.recipe_category}
+        post_response = self.test_client.post(
+            self.recipe_url,
+            data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        response_5_data = json.loads(response_5.get_data(as_text=True))
-        self.assertEqual(response_5_data, {'error': 'Must contain no spaces and should be a string'})
-        self.assertEqual(response_5.status_code, 400)
-        data_6 = {"title": "kevin", "body": "        ", "category": new_recipe_category}
-        response_6 = self.test_client.post(
-            url,
-            data=json.dumps(data_6),
-            headers={"x-access-token": access_token},
+        post_response_data = json.loads(post_response.get_data(as_text=True))
+        self.assertEqual(post_response_data['message'], {'body': ['Missing data for required field.']})
+        self.assertEqual(post_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_recipe_with_invalid_title(self):
+        """Recipe with invalid recipe title"""
+        data = {"title": "      ", "body": self.recipe_body, "category": self.recipe_category}
+        response = self.test_client.post(
+            self.recipe_url,
+            data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        response_6_data = json.loads(response_6.get_data(as_text=True))
-        self.assertEqual(response_6_data, {'error': 'Must contain no spaces and should be a string'})
-        self.assertEqual(response_6.status_code, 400)
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'message': 'Must contain no spaces and should be a string'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_recipe_with_invalid_body(self):
+        """Recipe with invalid recipe body"""
+        data = {"title": "kevin", "body": "        ", "category": self.recipe_category}
+        response = self.test_client.post(
+            self.recipe_url,
+            data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
+            content_type='application/json'
+        )
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'message': 'Must contain no spaces and should be a string'})
+        self.assertEqual(response.status_code, 400)
 
     def test_create_duplicated_recipe(self):
         """
         Ensure we can not create a duplicated recipe
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code,
-                         status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        new_recipe_title = 'recipe world'
-        new_recipe_body = 'This is the beginning of your hunger-free life'
-        new_recipe_category = 'soup'
-        post_response = self.create_recipe(new_recipe_title,
-                                           new_recipe_body,
-                                           new_recipe_category)
-        self.assertEqual(post_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Recipe.query.count(), 1)
+        post_response = self.create_recipe(self.recipe_title,
+                                           self.recipe_body,
+                                           self.recipe_category)
         post_response_data = json.loads(post_response.get_data(as_text=True))
-        self.assertEqual(post_response_data['title'], new_recipe_title)
-        self.assertEqual(post_response_data['body'], new_recipe_body)
-        new_recipe_url = post_response_data['url']
-        get_response = self.test_client.get(
-            new_recipe_url,
-            headers={"x-access-token":access_token}
-        )
-        get_response_data = json.loads(get_response.get_data(as_text=True))
-        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(get_response_data['title'],
-                         new_recipe_title)
-        self.assertEqual(get_response_data['body'],
-                         new_recipe_body)
-        self.assertEqual(get_response_data['category']['name'],
-                         new_recipe_category)
-        second_post_response = self.create_recipe(new_recipe_title,
-                                                  new_recipe_body,
-                                                  new_recipe_category)
-        self.assertEqual(second_post_response.status_code,
-                         status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Recipe.query.count(), 1)
+        self.assertEqual(post_response.status_code,
+                         status.HTTP_409_CONFLICT)
+        self.assertEqual(post_response_data['message'], 'A recipe with the same title already exists')
 
     def test_retrieve_recipe_list(self):
         """
         Ensure we can retrieve the recipes paginated list
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code,
-                         status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        get_first_page_url_1 = url_for('api.recipelistresource',
-                                       _external=True)
-        get_first_page_response_1 = self.test_client.get(
-            get_first_page_url_1,
-            headers={"x-access-token": access_token}
-        )
-        res = json.loads(get_first_page_response_1.data.decode())
-        self.assertEqual(res, {"Error": "No recipes. Create a recipe!"})
-        new_recipe_title1 = 'recipe world'
-        new_recipe_body1 = 'This is the beginning of your hunger-free life'
-        new_recipe_category1 = 'soup'
-        post_response = self.create_recipe(new_recipe_title1,
-                                           new_recipe_body1,
-                                           new_recipe_category1)
-        self.assertEqual(post_response.status_code,
-                         status.HTTP_201_CREATED)
-        self.assertEqual(Recipe.query.count(), 1)
-        new_recipe_title2 = 'meat soup'
-        new_recipe_body2 = 'This is the beginning of your hunger-free life'
-        new_recipe_category2 = 'breakfast'
-        post_response = self.create_recipe(new_recipe_title2,
-                                           new_recipe_body2,
-                                           new_recipe_category2)
-        self.assertEqual(post_response.status_code,
-                         status.HTTP_201_CREATED)
-        self.assertEqual(Recipe.query.count(), 2)
-        get_first_page_url = url_for('api.recipelistresource',
-                                     _external=True)
+        new_recipe_title = 'meat soup'
+        new_recipe_body = self.recipe_body
+        new_recipe_category = self.recipe_category
+        self.create_recipe(new_recipe_title,
+                           new_recipe_body,
+                           new_recipe_category)
         get_first_page_response = self.test_client.get(
-            get_first_page_url,
-            headers={"x-access-token": access_token}
+            self.recipe_url,
+            headers={"x-access-token": self.access_token}
             )
         get_first_page_response_data = json.loads(
             get_first_page_response.get_data(as_text=True))
+        print(get_first_page_response_data)
         self.assertEqual(get_first_page_response.status_code,
                          status.HTTP_200_OK)
         self.assertEqual(get_first_page_response_data['count'], 2)
-        self.assertIsNone(get_first_page_response_data['previous'])
-        self.assertIsNone(get_first_page_response_data['next'])
-        self.assertIsNotNone(get_first_page_response_data['results'])
-        self.assertEqual(len(get_first_page_response_data['results']), 2)
-        self.assertEqual(get_first_page_response_data['results'][0]['title'],
-                         new_recipe_title1)
-        self.assertEqual(get_first_page_response_data['results'][1]['title'],
-                         new_recipe_title2)
-        get_second_page_url = url_for('api.recipelistresource', page=2)
-        get_second_page_response = self.test_client.get(
-            get_second_page_url,
-            headers={"x-access-token": access_token}
-        )
-        get_second_page_response_data = json.loads(
-            get_second_page_response.get_data(as_text=True))
-        self.assertEqual(get_second_page_response.status_code,
-                         status.HTTP_200_OK)
-        self.assertEqual(get_second_page_response_data,
-                         {"Error": "No recipes. Create a recipe!"})
+
+    def test_retrieve_search_not_found(self):
+        """Search a category not there"""
         url = 'api/recipes/?q=git'
         response = self.test_client.get(
             url,
-            headers={"x-access-token": access_token}
+            headers={"x-access-token": self.access_token}
         )
         response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {'Error': 'No recipes. Create a recipe!'})
-        url_2 = 'api/recipes/?q=recipe'
+        self.assertEqual(response_data, {'error': 'No recipes. Create a recipe!'})
+
+    def test_search_existing_recipe(self):
+        """Test search for a recipe"""
+        url = 'api/recipes/?q=recipe'
         response = self.test_client.get(
-            url_2,
-            headers={"x-access-token": access_token}
+            url,
+            headers={"x-access-token": self.access_token}
         )
         response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data['results'][0]['title'], new_recipe_title1)
+        self.assertEqual(response_data['results'][0]['title'], self.recipe_title)
 
     def test_update_recipe(self):
         """
         Ensure we can update a single field for an existing message
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code,
-                         status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        new_recipe_title_1 = 'welcome'
-        new_recipe_body_1 = 'This is the body'
-        new_recipe_category_1 = 'soup'
-        post_response = self.create_recipe(new_recipe_title_1,
-                                           new_recipe_body_1,
-                                           new_recipe_category_1)
-        self.assertEqual(post_response.status_code,
-                         status.HTTP_201_CREATED)
-
-        self.assertEqual(Recipe.query.count(), 1)
-        post_response_data = json.loads(post_response.get_data(as_text=True))
-        new_recipe_url = post_response_data['url']
         new_recipe_title = "meat soup"
         data = {'title': new_recipe_title}
         patch_response = self.test_client.put(
-            new_recipe_url,
-            headers={"x-access-token": access_token},
+            'api/recipes/1',
+            headers={"x-access-token": self.access_token},
             data=json.dumps(data)
         )
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
+
+    def test_update_with_non_recipe(self):
+        """Test update a recipe that does not exist"""
         url = '/api/recipes/10'
         res = self.test_client.put(
             url,
-            data=json.dumps(data),
-            headers={"x-access-token": access_token},
+            data=json.dumps(self.data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
 
         )
         res_data = json.loads(res.get_data(as_text=True))
         self.assertEqual(res_data, {'Error': 'A recipe with that Id does not exist'})
-        new_recipe_title_2 = 'welcome'
-        new_recipe_body_2 = 'This is the body'
-        new_recipe_category_2 = 'soup'
-        post_response_2 = self.create_recipe(new_recipe_title_2,
-                                             new_recipe_body_2,
-                                             new_recipe_category_2)
-        self.assertEqual(post_response_2.status_code, 201)
-        new_recipe_title_3 = 'welcome'
-        data_2 = {'title': new_recipe_title_3}
-        patch_response_2 = self.test_client.put(
-            new_recipe_url,
-            headers={"x-access-token": access_token},
-            data=json.dumps(data_2),
-            content_type='application/json'
-        )
-        res = json.loads(patch_response_2.data.decode())
-        self.assertEqual(res, {'error': 'A recipe with the same title already exists'})
-        get_response = self.test_client.get(
-            new_recipe_url,
-            headers={"x-access-token": access_token})
-        get_response_data = json.loads(get_response.get_data(as_text=True))
-        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(get_response_data['title'],
-                         new_recipe_title)
 
     def test_delete_recipe(self):
         """
         Test a recipe is successfully Deleted
         """
-        create_user_response = self.create_user(self.test_username,
-                                                self.test_user_password)
-        self.assertEqual(create_user_response.status_code,
-                         status.HTTP_201_CREATED)
-        result = self.login_user(
-            self.test_username, self.test_user_password)
-        access_token = json.loads(result.data.decode())['token']
-        new_recipe_title_1 = 'welcome'
-        new_recipe_body_1 = 'This is the body'
-        new_recipe_category_1 = 'soup'
-        post_response = self.create_recipe(new_recipe_title_1,
-                                           new_recipe_body_1,
-                                           new_recipe_category_1)
-        self.assertEqual(post_response.status_code,
-                         status.HTTP_201_CREATED)
-        post_response_data = json.loads(post_response.get_data(as_text=True))
-        new_recipe_url = post_response_data['url']
+        url = '/api/recipes/1'
         delete_response = self.test_client.delete(
-            new_recipe_url,
-            headers={"x-access-token":access_token}
+            url,
+            headers={"x-access-token": self.access_token}
             )
         self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
-        url = '/api/recipes/1'
-        delete_response_2 = self.test_client.delete(
+
+    def test_delete_recipe_not_there(self):
+        """Test delete a non existent recipe"""
+        url = '/api/recipes/4'
+        delete_response = self.test_client.delete(
             url,
-            headers={"x-access-token": access_token}
+            headers={"x-access-token": self.access_token}
         )
-        delete_response_2_data = json.loads(delete_response_2.get_data(as_text=True))
-        self.assertEqual(delete_response_2.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(delete_response_2_data, {"error": "A recipe with the the id of 1 does not exist"})
+        delete_response_data = json.loads(delete_response.get_data(as_text=True))
+        self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(delete_response_data, {"error": "A recipe with the the id of 4 does not exist"})

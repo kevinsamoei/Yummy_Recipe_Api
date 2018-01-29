@@ -37,7 +37,7 @@ class AddUpdateDelete():
         :param ctx:
         :return: True if pattern is matched otherwise return false
         """
-        if re.search(r"^[a-zA-Z0-9]+$", ctx) is None:
+        if re.search(r"^[a-zA-Z0-9]", ctx) is None:
             return "Must contain no spaces and should be a string", False
         return "", True
 
@@ -102,7 +102,7 @@ class Category(db.Model, AddUpdateDelete):
     Model to define the category object
     """
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), unique=True)
+    name = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     def __init__(self, name, user_id):
@@ -110,11 +110,11 @@ class Category(db.Model, AddUpdateDelete):
         self.user_id = user_id
 
     @classmethod
-    def is_unique(cls, id, name):
+    def is_unique(cls, id, name, user_id):
         """
         Ensure that a category to be created is unique
         """
-        existing_category = cls.query.filter_by(name=name).first()
+        existing_category = cls.query.filter_by(name=name, user_id=user_id).first()
         if existing_category is None:
             return True
         else:
@@ -146,11 +146,11 @@ class Recipe(db.Model, AddUpdateDelete):
         self.user = user
 
     @classmethod
-    def is_unique(cls, id, title):
+    def is_unique(cls, id, title, user_id):
         """
         Ensure the recipe to be created will be unique
         """
-        existing_recipe = cls.query.filter_by(title=title).first()
+        existing_recipe = cls.query.filter_by(title=title, user_id=user_id).first()
         if existing_recipe is None:
             return True
         else:

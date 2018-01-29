@@ -1,7 +1,7 @@
 import datetime
 import jwt
 
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, abort
 from flask_restful import Api, Resource
 
 from api.models import db, User, DisableTokens
@@ -55,19 +55,20 @@ class RegisterUser(Resource):
         """
         request_dict = request.get_json()
         if not request_dict:
-            response = {'user': 'No input data provided'}
-            return response, status.HTTP_400_BAD_REQUEST
+            response = {'error': 'No input data provided'}
+            abort(status.HTTP_400_BAD_REQUEST, response)
         errors = user_schema.validate(request_dict)
         if errors:
-            return errors, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_400_BAD_REQUEST, errors)
         try:
             username = request_dict['username'].lower()
             password = request_dict['password']
         except KeyError as error:
-            return {"error": str(error)}, 400
+            res = {"error": str(error)}
+            abort(400, res)
         if not User.is_unique(username=username):
             response = {"error": "A user with the same name already exists"}
-            return response, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_409_CONFLICT, response)
         error, validated_name = User.validate_data(ctx=username)
         if validated_name:
             user = User(username=username)
@@ -78,9 +79,11 @@ class RegisterUser(Resource):
                 result = {"message": "User successfully registered"}
                 return result, status.HTTP_201_CREATED
             else:
-                return {'error': error_message}, status.HTTP_400_BAD_REQUEST
+                res = {'error': error_message}
+                abort(status.HTTP_400_BAD_REQUEST, res)
         else:
-            return {"error": error}, 400
+            response = {"error": error}
+            abort(response, 400)
 
 
 class LoginUser(Resource):
@@ -125,16 +128,15 @@ class LoginUser(Resource):
         auth = request.get_json()
         try:
             if not auth or not auth['username'] or not auth['password']:
-                return make_response(jsonify({'error': 'No data provided'}), status.HTTP_400_BAD_REQUEST)
+                abort(status.HTTP_400_BAD_REQUEST, 'No data provided')
         except KeyError as e:
             response = {"error": str(e)}
-            return response, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_400_BAD_REQUEST, response)
 
         user = User.query.filter_by(username=auth['username']).first()
 
         if not user:
-            res = {'error': 'No user with that name exists'}
-            return res, status.HTTP_401_UNAUTHORIZED
+            abort(status.HTTP_401_UNAUTHORIZED, 'No user with that name exists')
 
         if user.verify_password(auth['password']):
             token = jwt.encode(
@@ -143,8 +145,7 @@ class LoginUser(Resource):
 
             return jsonify({"token": token.decode('UTF-8')})
 
-        return make_response(jsonify({'error': 'Could not verify. Wrong username or password'}), 401,
-                             {'WWW-Authentication': 'Basic realm="Login required"'})
+        abort(401, 'Could not verify. Wrong username or password')
 
 
 class LogoutUser(Resource):

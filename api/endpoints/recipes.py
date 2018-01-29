@@ -1,5 +1,5 @@
 # coding=utf-8
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, abort
 from flask_restful import Api, Resource
 
 from api.models import db, Category,Recipe
@@ -51,11 +51,11 @@ class RecipeResource(Resource):
         """
 
         try:
-            recipe = Recipe.query.get_or_404(id)
+            recipe = Recipe.query.filter_by(id=id, user_id=current_user.id).first()
             result = recipe_schema.dump(recipe).data
             return result
         except Exception:
-            response = {"Error": "A recipe with that Id does not exist"}
+            response = {"Error": "A recipe with Id {0} does not exist".format(id)}
             return response, status.HTTP_404_NOT_FOUND
 
     @token_required
@@ -107,23 +107,22 @@ class RecipeResource(Resource):
                                   default: Soup
                       """
 
-        recipe = Recipe.query.filter_by(id=id).first()
+        recipe = Recipe.query.filter_by(id=id, user_id=current_user.id).first()
         if not recipe:
-            return {"Error": "A recipe with that Id does not exist"}, 400
+            return {"Error": "A recipe with that Id does not exist"}, 404
         recipe_dict = request.get_json(force=True)
         if 'title' in recipe_dict:
             recipe_title = recipe_dict['title'].lower()
-            if Recipe.is_unique(id=id, title=recipe_title):
+            if Recipe.is_unique(id=id, title=recipe_title, user_id=current_user.id):
                 recipe.title = recipe_title
             else:
-                response = {'error': 'A recipe with the same title already exists'}
-                return response, status.HTTP_400_BAD_REQUEST
+                abort('A recipe with the same title already exists', status.HTTP_409_CONFLICT)
         if 'body' in recipe_dict:
             recipe.body = recipe_dict['body']
 
         dumped_recipe, dumped_errors = recipe_schema.dump(recipe)
         if dumped_errors:
-            return dumped_errors, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_400_BAD_REQUEST, dumped_errors)
 
         recipe.update()
         return self.get(id)
@@ -148,10 +147,10 @@ class RecipeResource(Resource):
                             description: A single recipe successfully deleted
                         """
 
-        recipe = Recipe.query.filter_by(id=id).first()
+        recipe = Recipe.query.filter_by(id=id, user_id=current_user.id).first()
         if not recipe:
             res = {"error": "A recipe with the the id of {0} does not exist".format(id)}
-            return res, status.HTTP_400_BAD_REQUEST
+            return res, status.HTTP_404_NOT_FOUND
 
         recipe.delete(recipe)
         response = make_response(jsonify({"Message": "Deleted"}), status.HTTP_200_OK)
@@ -204,7 +203,7 @@ class RecipeListResource(Resource):
 
         pagination_helper = Pagination(
             request,
-            query=Recipe.query.filter(Recipe.user_id == current_user.id),
+            query=Recipe.query.filter_by(user_id=current_user.id),
             resource_for_url='api.recipelistresource',
             results_per_page=per_page,
             page=page,
@@ -218,8 +217,8 @@ class RecipeListResource(Resource):
                 request,
                 query=Recipe.query.filter(
                     Recipe.user_id == current_user.id,
-                    (Recipe.title.contains(search)) |
-                    (Recipe.body.contains(search))),
+                    (Recipe.title.contains(search.lower())) |
+                    (Recipe.body.contains(search.lower()))),
                 resource_for_url='api.recipelistresource',
                 key_name='results',
                 page=page,
@@ -228,12 +227,14 @@ class RecipeListResource(Resource):
             )
             results = recipes.paginate_query()
             if len(results['results']) <= 0:
-                return jsonify({"Error": "No recipes. Create a recipe!"})
-            return results
+                response = {"error": "No recipes. Create a recipe!"}
+                return response, 404
+            return results, status.HTTP_200_OK
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
-            return jsonify({"Error": "No recipes. Create a recipe!"})
-        return result
+            response = {"error": "No recipes. Create a recipe!"}
+            return response, 404
+        return result, status.HTTP_200_OK
 
     @token_required
     def post(current_user, self):
@@ -282,22 +283,20 @@ class RecipeListResource(Resource):
         request_dict = request.get_json()
 
         if not request_dict:
-            response = {"Message": "No output data provided"}
-            return response, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_400_BAD_REQUEST, "No output data provided")
         errors = recipe_schema.validate(request_dict)
         if errors:
-            return errors, status.HTTP_400_BAD_REQUEST
+            abort(status.HTTP_400_BAD_REQUEST, errors)
         recipe_title = request_dict['title'].lower()
         recipe_body = request_dict['body']
-        if not Recipe.is_unique(id=0, title=recipe_title):
-            response = {'error': 'A recipe with the same title already exists'}
-            return response, status.HTTP_400_BAD_REQUEST
+        if not Recipe.is_unique(id=0, title=recipe_title, user_id=current_user.id):
+            abort(status.HTTP_409_CONFLICT, 'A recipe with the same title already exists')
         error, validated_title = Recipe.validate_recipe(ctx=recipe_title)
         if not validated_title:
-            return {"error": error}, 400
+            abort(400, error)
         error_body, validated_body = Recipe.validate_recipe(ctx=recipe_body)
         if not validated_body:
-            return {"error": error_body}, 400
+            abort(400, error_body)
         category_name = request_dict['category']['name'].lower()
         error_category, validate_data = Category.validate_data(ctx=category_name)
         if validate_data:
@@ -317,7 +316,7 @@ class RecipeListResource(Resource):
 
             return make_response(jsonify(result), status.HTTP_201_CREATED)
         else:
-            return {"error": error_category}, 400
+            abort(400, error_category)
 
 
 api.add_resource(RecipeListResource, '/recipes/')
