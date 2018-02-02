@@ -47,7 +47,7 @@ class User(db.Model, AddUpdateDelete):
     A model to create a user object
     """
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(db.String(120))
     username = db.Column(db.String(50), unique=True, nullable=False)
     hashed_password = db.Column(db.String(120), nullable=False)
     created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
@@ -77,6 +77,8 @@ class User(db.Model, AddUpdateDelete):
             return "The password must include at least one number", False
         if re.search(r"[@!#$%&'()*+,-./[\\\]^_`{|}~"+r'"]', password) is None:
             return "The password must include at least one symbol", False
+        if ' ' in password:
+            return "The parameter password has spaces in: {}".format(password), False
         self.hashed_password = password_context.encrypt(password)
         return "", True
 

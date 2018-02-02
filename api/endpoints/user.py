@@ -1,5 +1,6 @@
 import datetime
 import jwt
+import re
 
 from flask import Blueprint, request, jsonify, make_response, abort
 from flask_restful import Api, Resource
@@ -10,6 +11,7 @@ from api.serializers import UserSchema
 
 from api import status
 from api.auth import token_required
+from api.validate_json import validate_json
 
 api_bp = Blueprint('api/auth', __name__)
 from run import mail
@@ -21,6 +23,7 @@ class RegisterUser(Resource):
     """"
     Class to register a new user
     """
+    @validate_json
     def post(self):
         """
          Register a user
@@ -69,6 +72,8 @@ class RegisterUser(Resource):
             abort(status.HTTP_400_BAD_REQUEST, errors)
         try:
             username = request_dict['username'].lower()
+            if re.match(r'[A-Za-z]+$', username) is None:
+                return {"error": "Non-alphabetic characters for username are not allowed"}, 400
             password = request_dict['password']
             email = request_dict['email']
         except KeyError as error:
@@ -98,6 +103,7 @@ class LoginUser(Resource):
     """
     Defines methods for manipulating a single user
     """
+    @validate_json
     def post(self):
         """
         Log in a user and get a token
@@ -161,7 +167,7 @@ class LogoutUser(Resource):
     Defines methods for the Logout Resource
     """
     @token_required
-    def post(self):
+    def post(current, self):
         """
                 Logout a user
                 ---
@@ -185,7 +191,7 @@ class SendResetPassword(Resource):
     """
     Resource to reset a user's password
     """
-
+    @validate_json
     def post(self):
         """Reset a user's password
         ---
@@ -251,7 +257,7 @@ class ChangePassword(Resource):
     """
     Resource to reset a user's password
     """
-
+    @validate_json
     @token_required
     def post(current_user, self):
         """Reset a user's password

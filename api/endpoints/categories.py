@@ -7,6 +7,7 @@ from api.serializers import CategorySchema
 from api import status
 from api.pagination import Pagination
 from api.auth import token_required
+from api.validate_json import validate_json
 
 api_bp = Blueprint('api/categories', __name__)
 category_schema = CategorySchema()
@@ -49,6 +50,7 @@ class CategoryResource(Resource):
         result = category_schema.dump(category).data
         return result
 
+    @validate_json
     @token_required
     def put(current_user, self, id):
         """
@@ -204,6 +206,7 @@ class CategoryListResource(Resource):
             return jsonify({"Error": "No categories. Create a category."})
         return result, status.HTTP_404_NOT_FOUND
 
+    @validate_json
     @token_required
     def post(current_user, self):
         """

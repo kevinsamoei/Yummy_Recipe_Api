@@ -8,6 +8,7 @@ from api.serializers import RecipeSchema
 from api import status
 from api.pagination import Pagination
 from api.auth import token_required
+from api.validate_json import validate_json
 
 api_bp = Blueprint('api', __name__)
 recipe_schema = RecipeSchema()
@@ -58,6 +59,7 @@ class RecipeResource(Resource):
             response = {"Error": "A recipe with Id {0} does not exist".format(id)}
             return response, status.HTTP_404_NOT_FOUND
 
+    @validate_json
     @token_required
     def put(current_user, self, id):
         """
@@ -236,6 +238,7 @@ class RecipeListResource(Resource):
             return response, 404
         return result, status.HTTP_200_OK
 
+    @validate_json
     @token_required
     def post(current_user, self):
         """

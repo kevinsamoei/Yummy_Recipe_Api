@@ -1,5 +1,5 @@
 # coding=utf-8
-from marshmallow import fields, pre_load, post_load, validates_schema, ValidationError
+from marshmallow import fields, pre_load, post_load
 from marshmallow import validate
 
 from flask_marshmallow import Marshmallow
