@@ -47,6 +47,7 @@ class User(db.Model, AddUpdateDelete):
     A model to create a user object
     """
     id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     hashed_password = db.Column(db.String(120), nullable=False)
     created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
@@ -93,8 +94,9 @@ class User(db.Model, AddUpdateDelete):
             else:
                 return False
 
-    def __init__(self, username):
+    def __init__(self, username, email):
         self.username = username
+        self.email = email
 
 
 class Category(db.Model, AddUpdateDelete):

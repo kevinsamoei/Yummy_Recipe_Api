@@ -1,5 +1,5 @@
 # coding=utf-8
-from marshmallow import fields, pre_load
+from marshmallow import fields, pre_load, post_load, validates_schema, ValidationError
 from marshmallow import validate
 
 from flask_marshmallow import Marshmallow
@@ -13,8 +13,15 @@ class UserSchema(ma.Schema):
     """
     id = fields.Integer(dump_only=True)
     username = fields.String(required=True, validate=validate.Length(3))
+    email = fields.String(required=True, validate=validate.Regexp(r"(^\w+@[a-zA-Z0-9_]+?\.[a-zA-Z0-9]{3,3}$)"
+                                                                  , error="Invalid email"))
     hashed_password = fields.String()
     url = ma.URLFor('api/auth.registeruser', id='<id>', _external=True)
+
+    @post_load
+    def lowerstrip_email(self, item):
+        item['email'] = item['email'].lower().strip()
+        return item
 
 
 class CategorySchema(ma.Schema):

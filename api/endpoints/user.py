@@ -3,6 +3,7 @@ import jwt
 
 from flask import Blueprint, request, jsonify, make_response, abort
 from flask_restful import Api, Resource
+from flask_mail import Message
 
 from api.models import db, User, DisableTokens
 from api.serializers import UserSchema
@@ -10,8 +11,8 @@ from api.serializers import UserSchema
 from api import status
 from api.auth import token_required
 
-
 api_bp = Blueprint('api/auth', __name__)
+from run import mail
 user_schema = UserSchema()
 api = Api(api_bp)
 
@@ -40,6 +41,9 @@ class RegisterUser(Resource):
                 password:
                   type: string
                   default: P@ssword1
+                email:
+                  type: string
+                  default: samoeikev@gmail.com
         responses:
           200:
             description: A registered user
@@ -52,6 +56,9 @@ class RegisterUser(Resource):
                 password:
                   type: string
                   default: P@ssword1
+                email:
+                  type: string
+                  default: samoeikev@gmail.com
         """
         request_dict = request.get_json()
         if not request_dict:
@@ -63,6 +70,7 @@ class RegisterUser(Resource):
         try:
             username = request_dict['username'].lower()
             password = request_dict['password']
+            email = request_dict['email']
         except KeyError as error:
             res = {"error": str(error)}
             abort(400, res)
@@ -71,7 +79,7 @@ class RegisterUser(Resource):
             abort(status.HTTP_409_CONFLICT, response)
         error, validated_name = User.validate_data(ctx=username)
         if validated_name:
-            user = User(username=username)
+            user = User(username=username, email=email)
             error_message, password_ok = \
                 user.check_password_strength_and_hash_if_ok(password)
             if password_ok:
@@ -153,14 +161,12 @@ class LogoutUser(Resource):
     Defines methods for the Logout Resource
     """
     @token_required
-    def post(current_user, self):
+    def post(self):
         """
                 Logout a user
                 ---
                 tags:
                   - auth
-                security:
-                    - TokenHeader: []
                 responses:
                   200:
                     description: A user has been successfully logged out
@@ -175,10 +181,77 @@ class LogoutUser(Resource):
             return make_response(jsonify({"Message": "Successfully logged out"}), 200)
 
 
-class ResetPassword(Resource):
+class SendResetPassword(Resource):
     """
     Resource to reset a user's password
     """
+
+    def post(self):
+        """Reset a user's password
+        ---
+        tags:
+          - auth
+        parameters:
+          - in: body
+            name: body
+            description: Old password and new user password
+            type: string
+            schema:
+              id: auth
+              properties:
+                username:
+                  default: kevin
+                email:
+                  default: samoeikev@gmail.com
+        responses:
+          201:
+            description: successfully changed the password
+          400:
+            description: Bad request. Wrong details, missing parameters and invalid passwords
+
+        """
+
+        request_dict = request.get_json()
+
+        try:
+            username = request_dict['username']
+            email = request_dict['email']
+        except Exception as e:
+            response = {"error": str(e)}
+            return response, status.HTTP_400_BAD_REQUEST
+
+        user = User.query.filter_by(username=username, email=email).first()
+        if not user:
+            abort(400, "Wrong username or email")
+
+        if not request_dict:
+            resp = {'message': 'No input data provided'}
+            return resp, status.HTTP_400_BAD_REQUEST
+
+        token = jwt.encode(
+            {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
+            'topsecret')
+
+        try:
+            msg = Message("Reset password Token",
+                          sender="samoeikev@gmail.com",
+                          recipients=[email])
+            msg.html = "<h1>Hello, </h1>" \
+                       "<p>This is a token requested for password reset" \
+                       "Token: " '<p>''<strong>' + str(token.decode("UTF-8"))+'</strong>''</p>' \
+                                                                '<p> Copy the toke and authorize your views' \
+                                                                  '<p>Cheers, <br>Kevin Samoei</p>'
+            mail.send(msg)
+            return {"message": 'Mail sent!'}
+        except Exception as e:
+            return {"error": str(e)}
+
+
+class ChangePassword(Resource):
+    """
+    Resource to reset a user's password
+    """
+
     @token_required
     def post(current_user, self):
         """Reset a user's password
@@ -193,10 +266,8 @@ class ResetPassword(Resource):
             schema:
               id: auth
               properties:
-                old:
+                password:
                   default: P@ssword1
-                new:
-                  default: P@ssw0rd
         responses:
           201:
             description: successfully changed the password
@@ -205,30 +276,25 @@ class ResetPassword(Resource):
 
         """
 
-        password_dict = request.get_json()
+        request_dict = request.get_json()
 
-        user = User.query.filter_by(id=current_user.id).first()
-
-        if not password_dict:
-            resp = {'message': 'No input data provided'}
-            return resp, status.HTTP_400_BAD_REQUEST
         try:
-            old_password = password_dict['old']
-            new_password = password_dict['new']
+            password = request_dict['password']
         except Exception as e:
             response = {"error": str(e)}
             return response, status.HTTP_400_BAD_REQUEST
 
-        if not user.verify_password(old_password):
-            response = {'status': 'error', 'message': 'old password is not correct'}
-            return response, status.HTTP_400_BAD_REQUEST
+        user = User.query.filter_by(id=current_user.id).first()
+
+        if not request_dict:
+            resp = {'message': 'No input data provided'}
+            return resp, status.HTTP_400_BAD_REQUEST
 
         error_message, password_ok = \
-            user.check_password_strength_and_hash_if_ok(new_password)
+            user.check_password_strength_and_hash_if_ok(password)
         if password_ok:
             user.update()
-            query = User.query.get(user.id)
-            result = user_schema.dump(query).data
+            result = {"Message": "Password successfully changed!"}
             return result, status.HTTP_201_CREATED
         else:
             return {'error': error_message}, status.HTTP_400_BAD_REQUEST
@@ -237,4 +303,5 @@ class ResetPassword(Resource):
 api.add_resource(RegisterUser, '/register/')
 api.add_resource(LoginUser, '/login/')
 api.add_resource(LogoutUser, '/logout/')
-api.add_resource(ResetPassword, '/reset-password/')
+api.add_resource(SendResetPassword, '/reset-password/')
+api.add_resource(ChangePassword, '/change-password/')
