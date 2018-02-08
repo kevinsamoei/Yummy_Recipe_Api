@@ -205,19 +205,6 @@ class AuthTestCase(BaseTestCase):
         self.assertEqual(logout_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response, {'message': 'Logged out. log in again'})
 
-    def test_send_reset_password(self):
-        """
-        Send reset password token
-        """
-        response = self.client.post(
-            self.reset_url,
-            data=json.dumps(self.reset_data),
-            content_type='application/json'
-        )
-        response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {'message': 'Mail sent!'})
-        self.assertEqual(response.status_code, 200)
-
     def test_send_reset_with_wrong_username(self):
         data = {"username": "nonuser", "email": self.test_email}
         response = self.client.post(
