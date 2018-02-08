@@ -14,7 +14,11 @@ from api.auth import token_required
 from api.validate_json import validate_json
 
 api_bp = Blueprint('api/auth', __name__)
-from run import mail
+from run import mail, app
+
+app_context = app.app_context()
+app_context.push()
+
 user_schema = UserSchema()
 api = Api(api_bp)
 
@@ -36,7 +40,7 @@ class RegisterUser(Resource):
             required: true
             description: User's name and password
             schema:
-              id: user
+              id: register
               properties:
                 username:
                   type: string
@@ -203,7 +207,7 @@ class SendResetPassword(Resource):
             description: Old password and new user password
             type: string
             schema:
-              id: auth
+              id: change-password
               properties:
                 username:
                   default: kevin
@@ -219,6 +223,10 @@ class SendResetPassword(Resource):
 
         request_dict = request.get_json()
 
+        if not request_dict:
+            resp = {'message': 'No input data provided'}
+            return resp, status.HTTP_400_BAD_REQUEST
+
         try:
             username = request_dict['username']
             email = request_dict['email']
@@ -229,10 +237,6 @@ class SendResetPassword(Resource):
         user = User.query.filter_by(username=username, email=email).first()
         if not user:
             abort(400, "Wrong username or email")
-
-        if not request_dict:
-            resp = {'message': 'No input data provided'}
-            return resp, status.HTTP_400_BAD_REQUEST
 
         token = jwt.encode(
             {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
@@ -245,12 +249,13 @@ class SendResetPassword(Resource):
             msg.html = "<h1>Hello, </h1>" \
                        "<p>This is a token requested for password reset" \
                        "Token: " '<p>''<strong>' + str(token.decode("UTF-8"))+'</strong>''</p>' \
-                                                                '<p> Copy the toke and authorize your views' \
-                                                                  '<p>Cheers, <br>Kevin Samoei</p>'
-            mail.send(msg)
-            return {"message": 'Mail sent!'}
+                                                                              '<p> Copy the token and authorize your views</p>' \
+                                                                              '<p>Cheers, <br>Kevin Samoei</p>'
+            with app_context:
+                mail.send(msg)
+            return {"message": 'Mail sent!'}, 200
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": str(e)}, 400
 
 
 class ChangePassword(Resource):
@@ -270,7 +275,7 @@ class ChangePassword(Resource):
             description: Old password and new user password
             type: string
             schema:
-              id: auth
+              id: password
               properties:
                 password:
                   default: P@ssword1

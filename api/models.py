@@ -39,6 +39,8 @@ class AddUpdateDelete():
         """
         if re.search(r"^[a-zA-Z0-9]", ctx) is None:
             return "Must contain no spaces and should be a string", False
+        if '  ' in ctx:
+            return "The parameter has more than one spaces in: {}".format(ctx), False
         return "", True
 
 
@@ -171,6 +173,8 @@ class Recipe(db.Model, AddUpdateDelete):
         """
         if re.search(r"^[a-zA-Z0-9]", ctx) is None:
             return "Must contain no spaces and should be a string", False
+        if '  ' in ctx:
+            return "The parameter category has more than one spaces in: {}".format(ctx), False
         return "", True
 
 
