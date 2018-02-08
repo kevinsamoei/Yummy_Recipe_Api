@@ -13,11 +13,15 @@ class AuthTestCase(BaseTestCase):
         self.register_url = url_for('api/auth.registeruser', _external=True)
         self.login_url = url_for('api/auth.loginuser', _external=True)
         self.logout_url = url_for('api/auth.logoutuser', _external=True)
-        self.reset_url = url_for('api/auth.resetpassword', _external=True)
+        self.reset_url = url_for('api/auth.sendresetpassword', _external=True)
         self.register = self.client.post(self.register_url, data=json.dumps(self.user_data),
                                          content_type='application/json')
         self.login_response = self.login_user(self.test_username, self.test_user_password)
         self.access_token = json.loads(self.login_response.data.decode())['token']
+        self.reset_data = {
+            "username": "kevin",
+            "email": "samoeikev@gmail.com"
+        }
 
     def test_registration(self):
         """Test user registration works correcty."""
@@ -25,7 +29,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_missing_field(self):
         """Test register when a field is not provided"""
-        data = {"username": "kev"}
+        data = {"username": "kev", "email": self.test_email}
         response = self.test_client.post(
             self.register_url,
             data=json.dumps(data),
@@ -38,7 +42,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_invalid_inputs(self):
         """Test register when an input field is invalid"""
-        data_2 = {"username": "kev", "password": "k"}
+        data_2 = {"username": "kev", "password": "k", "email": self.test_email}
         response_2 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_2),
@@ -50,7 +54,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_password_has_no_number(self):
         """Test if register fails when password has no num"""
-        data_3 = {"username": "kev", "password": "P@ssword"}
+        data_3 = {"username": "kev", "password": "P@ssword", "email": self.test_email}
         response_3 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_3),
@@ -62,7 +66,8 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_long_password(self):
         """Test if register fails when a long password is given"""
-        data_4 = {"username": "kev", "password": "P@ssword1ThereisnothingsimpleaboutcreatingeffectiveJavaScript code"}
+        data_4 = {"username": "kev", "password": "P@ssword1ThereisnothingsimpleaboutcreatingeffectiveJavaScript code",
+                  "email": self.test_email}
         response_4 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_4),
@@ -74,7 +79,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_no_uppercase_letter_pwd(self):
         """Password must contain an uppercase letter"""
-        data_5 = {"username": "kev", "password": "p@ssword1"}
+        data_5 = {"username": "kev", "password": "p@ssword1", "email": self.test_email}
         response_5 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_5),
@@ -86,7 +91,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_no_symbol_in_password(self):
         """Password must have at least on symbol"""
-        data_6 = {"username": "kev", "password": "Password1"}
+        data_6 = {"username": "kev", "password": "Password1", "email": self.test_email}
         response_6 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_6),
@@ -98,7 +103,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_password_has_no_lowercase(self):
         """Password must have at least one lowercase letter"""
-        data_7 = {"username": "kev", "password": "P@SSWORD1"}
+        data_7 = {"username": "kev", "password": "P@SSWORD1", "email": self.test_email}
         response_7 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_7),
@@ -139,13 +144,13 @@ class AuthTestCase(BaseTestCase):
         """Should fail when wrong password is provided"""
         data = {"username": "kevin", "password": "Password1"}
         response = self.test_client.post(
-            self.register_url,
+            self.login_url,
             data=json.dumps(data),
             content_type='application/json'
         )
         response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {'message': {'error': 'A user with the same name already exists'}})
-        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response_data, {'message': 'Could not verify. Wrong username or password'})
+        self.assertEqual(response.status_code, 401)
 
     def test_login_with_missing_field(self):
         """Should fail when their is missing data"""
@@ -200,65 +205,33 @@ class AuthTestCase(BaseTestCase):
         self.assertEqual(logout_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response, {'message': 'Logged out. log in again'})
 
-    def test_reset_password(self):
-        """Test if user can reset password successfully"""
-        data = {"old": "P@ssword1", "new": "P@ssw0rd"}
-        response = self.test_client.post(
+    def test_send_reset_with_wrong_username(self):
+        data = {"username": "nonuser", "email": self.test_email}
+        response = self.client.post(
             self.reset_url,
-            headers={"x-access-token": self.access_token},
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'message': 'Wrong username or email'})
 
-    def test_reset_password_when_old_password_is_wrong(self):
-        """Should fail if old password is wrong"""
-        data = {"old": "P@ssw0rd", "new": "P@ssword1"}
-        response = self.test_client.post(
-            self.reset_url,
-            headers={"x-access-token": self.access_token},
-            data=json.dumps(data),
-            content_type='application/json'
-        )
-        response__data = json.loads(response.data.decode())
-        self.assertEqual(response__data, {'status': 'error', 'message': 'old password is not correct'})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_reset_password_when_no_data_provided(self):
-        """Fail when no data is provided"""
+    def test_send_reset_with_no_data(self):
         data = {}
-        response = self.test_client.post(
+        response = self.client.post(
             self.reset_url,
-            headers={"x-access-token": self.access_token},
             data=json.dumps(data),
             content_type='application/json'
         )
-        response_data = json.loads(response.data.decode())
-        self.assertTrue(response_data, {'message': 'No input data provided'})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = json.loads(response.get_data(as_text=True))
+        self.assertEqual(response_data, {'message': 'No input data provided'})
+        self.assertEqual(response.status_code, 400)
 
-    def test_reset_when_missing_one_data(self):
-        """All data should be provided to pass"""
-        data = {"old": "P@ssw0rd"}
-        response = self.test_client.post(
-            self.reset_url,
-            headers={"x-access-token": self.access_token},
+    def test_change_password(self):
+        data = {"password": "P@ssw0rd"}
+        response = self.client.post(
+            'api/auth/change-password/',
             data=json.dumps(data),
+            headers={"x-access-token": self.access_token},
             content_type='application/json'
         )
-        response_data = json.loads(response.data.decode())
-        self.assertEqual(response_data, {"error": "'new'"})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_reset_when_password_is_invalid(self):
-        """Password must be valid"""
-        data = {"old": "P@ssword1", "new": "P@ssword"}
-        response = self.test_client.post(
-            self.register_url,
-            headers={"x-access-token": self.access_token},
-            data=json.dumps(data),
-            content_type='application/json'
-        )
-        response_data = json.loads(response.data.decode())
-        self.assertEqual(response_data, {'message': {'username': ['Missing data for required field.']}})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, 201)

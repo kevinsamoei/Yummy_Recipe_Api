@@ -7,6 +7,7 @@ from api.serializers import CategorySchema
 from api import status
 from api.pagination import Pagination
 from api.auth import token_required
+from api.validate_json import validate_json
 
 api_bp = Blueprint('api/categories', __name__)
 category_schema = CategorySchema()
@@ -49,6 +50,7 @@ class CategoryResource(Resource):
         result = category_schema.dump(category).data
         return result
 
+    @validate_json
     @token_required
     def put(current_user, self, id):
         """
@@ -90,20 +92,27 @@ class CategoryResource(Resource):
         if not category:
             return {"Error": "A category with that Id does not exist"}, 404
         category_dict = request.get_json()
+        try:
+            category_name = category_dict['name'].lower().rstrip()
+        except KeyError as e:
+            abort(400, {"error": str(e)})
         if not category_dict:
             abort(status.HTTP_400_BAD_REQUEST, 'No input data provided')
         errors = category_schema.validate(category_dict)
         if errors:
             abort(status.HTTP_400_BAD_REQUEST, errors)
-
-        if 'name' in category_dict:
-            category_name = category_dict['name'].lower()
-            if Category.is_unique(id=id, name=category_name, user_id=current_user.id):
-                category.name = category_name
-            else:
-                abort('A category with the same name already exists', status.HTTP_409_CONFLICT)
-        category.update()
-        return self.get(id)
+        error, validated_name = Category.validate_data(ctx=category_name)
+        if validated_name:
+            if 'name' in category_dict:
+                category_name = category_name
+                if Category.is_unique(id=id, name=category_name, user_id=current_user.id):
+                    category.name = category_name
+                else:
+                    abort(status.HTTP_409_CONFLICT, 'A category with the same name already exists')
+            category.update()
+            return self.get(id)
+        else:
+            return {"errors": error}
 
     @token_required
     def delete(current_user, self, id):
@@ -204,6 +213,7 @@ class CategoryListResource(Resource):
             return jsonify({"Error": "No categories. Create a category."})
         return result, status.HTTP_404_NOT_FOUND
 
+    @validate_json
     @token_required
     def post(current_user, self):
         """

@@ -18,10 +18,12 @@ class BaseTestCase(unittest.TestCase):
         self.test_client = self.app.test_client()
         self.test_username = 'kevin'
         self.test_user_password = 'P@ssword1'
+        self.test_email = "samoeikev@gmail.com"
 
         self.user_data = {
             "username": "kevin",
-            "password": "P@ssword1"
+            "password": "P@ssword1",
+            "email": "samoeikev@gmail.com"
         }
 
         with self.app_context:
@@ -32,9 +34,9 @@ class BaseTestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
 
-    def create_user(self, username, password):
+    def create_user(self, username, password, email):
         url = url_for('api/auth.registeruser', _external=True)
-        data = {'username': username, 'password': password}
+        data = {'username': username, 'password': password, 'email': email}
         response = self.test_client.post(
             url,
             content_type='application/json',

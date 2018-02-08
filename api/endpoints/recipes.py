@@ -8,6 +8,7 @@ from api.serializers import RecipeSchema
 from api import status
 from api.pagination import Pagination
 from api.auth import token_required
+from api.validate_json import validate_json
 
 api_bp = Blueprint('api', __name__)
 recipe_schema = RecipeSchema()
@@ -58,6 +59,7 @@ class RecipeResource(Resource):
             response = {"Error": "A recipe with Id {0} does not exist".format(id)}
             return response, status.HTTP_404_NOT_FOUND
 
+    @validate_json
     @token_required
     def put(current_user, self, id):
         """
@@ -112,20 +114,29 @@ class RecipeResource(Resource):
             return {"Error": "A recipe with that Id does not exist"}, 404
         recipe_dict = request.get_json(force=True)
         if 'title' in recipe_dict:
-            recipe_title = recipe_dict['title'].lower()
-            if Recipe.is_unique(id=id, title=recipe_title, user_id=current_user.id):
-                recipe.title = recipe_title
+            recipe_title = recipe_dict['title'].lower().rstrip()
+            error, validate_title = recipe.validate_recipe(ctx=recipe_title)
+            if validate_title:
+                if Recipe.is_unique(id=id, title=recipe_title, user_id=current_user.id):
+                    recipe.title = recipe_title
+                else:
+                    abort(status.HTTP_409_CONFLICT, 'A recipe with the same title already exists')
             else:
-                abort('A recipe with the same title already exists', status.HTTP_409_CONFLICT)
+                abort(400, {"error": error})
         if 'body' in recipe_dict:
-            recipe.body = recipe_dict['body']
+            recipe_body = recipe_dict['body'].rstrip()
+            body_errors, validate_body = recipe.validate_recipe(ctx=recipe_body)
+            if validate_body:
+                recipe.body = recipe_body
+            else:
+                abort(400, body_errors)
 
         dumped_recipe, dumped_errors = recipe_schema.dump(recipe)
         if dumped_errors:
             abort(status.HTTP_400_BAD_REQUEST, dumped_errors)
 
         recipe.update()
-        return self.get(id)
+        return self.get(id), 200, {"Message": "Recipe successfully edited"}
 
     @token_required
     def delete(current_user, self, id):
@@ -153,7 +164,7 @@ class RecipeResource(Resource):
             return res, status.HTTP_404_NOT_FOUND
 
         recipe.delete(recipe)
-        response = make_response(jsonify({"Message": "Deleted"}), status.HTTP_200_OK)
+        response = make_response(jsonify({"Message": "Recipe deleted"}), status.HTTP_200_OK)
         return response
 
 
@@ -236,6 +247,7 @@ class RecipeListResource(Resource):
             return response, 404
         return result, status.HTTP_200_OK
 
+    @validate_json
     @token_required
     def post(current_user, self):
         """
@@ -297,7 +309,7 @@ class RecipeListResource(Resource):
         error_body, validated_body = Recipe.validate_recipe(ctx=recipe_body)
         if not validated_body:
             abort(400, error_body)
-        category_name = request_dict['category']['name'].lower()
+        category_name = request_dict['category']['name'].lower().rstrip()
         error_category, validate_data = Category.validate_data(ctx=category_name)
         if validate_data:
             category = Category.query.filter_by(name=category_name).first()
