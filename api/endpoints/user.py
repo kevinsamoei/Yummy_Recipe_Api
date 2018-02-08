@@ -1,10 +1,12 @@
 import datetime
 import jwt
 import re
+import os
 
 from flask import Blueprint, request, jsonify, make_response, abort
 from flask_restful import Api, Resource
-from flask_mail import Message
+from flask_mail import Message, Mail
+# from flask_mail import Mail
 
 from api.models import db, User, DisableTokens
 from api.serializers import UserSchema
@@ -14,13 +16,24 @@ from api.auth import token_required
 from api.validate_json import validate_json
 
 api_bp = Blueprint('api/auth', __name__)
-from run import mail, app
+
+from run import app
 
 app_context = app.app_context()
 app_context.push()
 
 user_schema = UserSchema()
 api = Api(api_bp)
+
+app.config.update(
+    DEBUG=True,
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
+    MAIL_PORT=465,
+    MAIL_USE_SSL=True,
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD")
+)
+mail = Mail(app)
 
 
 class RegisterUser(Resource):
