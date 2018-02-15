@@ -93,7 +93,7 @@ class CategoryResource(Resource):
             return {"Error": "A category with that Id does not exist"}, 404
         category_dict = request.get_json()
         try:
-            category_name = category_dict['name'].lower().rstrip()
+            category_name = category_dict['name'].lower().strip()
         except KeyError as e:
             abort(400, {"error": str(e)})
         if not category_dict:
@@ -205,13 +205,13 @@ class CategoryListResource(Resource):
             )
             results = categories.paginate_query()
             if len(results['results']) <= 0:
-                return jsonify({"Error": "No categories. Please add a category"})
+                return jsonify({"Error": "No catgory match found for search term"})
             return results, status.HTTP_404_NOT_FOUND
 
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
-            return jsonify({"Error": "No categories. Create a category."})
-        return result, status.HTTP_404_NOT_FOUND
+            return jsonify({"Error": "No categories found"})
+        return result, status.HTTP_302_FOUND
 
     @validate_json
     @token_required
@@ -252,7 +252,7 @@ class CategoryListResource(Resource):
         if errors:
             abort(status.HTTP_400_BAD_REQUEST, errors)
 
-        category_name = request_dict['name'].lower().rstrip()
+        category_name = request_dict['name'].lower().strip()
         if not Category.is_unique(id=0, name=category_name, user_id=current_user.id):
             abort(status.HTTP_409_CONFLICT, "A category with the same name already exists")
         error, validated_name = Category.validate_data(ctx=category_name)

@@ -40,14 +40,16 @@ class CategoryTests(BaseTestCase):
         )
         return response
 
-    def test_create_and_retrieve_category(self):
+    def test_create_category(self):
         self.assertEqual(self.category.status_code, 201)
         self.assertEqual(Category.query.count(), 1)
         post_response_data = json.loads(self.category.get_data(as_text=True))
         self.assertEqual(post_response_data['name'], self.category_name)
-        new_category_url = post_response_data['url']
+
+    def test_retrieve_category(self):
+        url = '/api/categories/1'
         get_response = self.test_client.get(
-            new_category_url,
+            url,
             headers={"x-access-token": self.access_token}
         )
         get_response_data = json.loads(get_response.get_data(as_text=True))
@@ -101,7 +103,7 @@ class CategoryTests(BaseTestCase):
             content_type='application/json'
         )
         post_response_data = json.loads(post_response.get_data(as_text=True))
-        self.assertEqual(post_response_data, {'message': 'Must contain no spaces and should be a string'})
+        self.assertEqual(post_response_data, {'message': 'No input data provided'})
         self.assertEqual(post_response.status_code, 400)
 
     def test_create_duplicated_category(self):
@@ -137,7 +139,7 @@ class CategoryTests(BaseTestCase):
             headers={"x-access-token": self.access_token}
         )
         response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data['Error'], 'No categories. Create a category.')
+        self.assertEqual(response_data['Error'], 'No categories found')
 
     def test_category_with_search(self):
         """Retrieve a searcged category"""
@@ -155,7 +157,7 @@ class CategoryTests(BaseTestCase):
             headers={"x-access-token": self.access_token}
         )
         response_3_data = json.loads(response_3.get_data(as_text=True))
-        self.assertEqual(response_3_data["Error"], "No categories. Please add a category")
+        self.assertEqual(response_3_data["Error"], "No catgory match found for search term")
 
     def test_update_existing_category(self):
         """

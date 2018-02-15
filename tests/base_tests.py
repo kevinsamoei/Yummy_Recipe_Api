@@ -16,6 +16,8 @@ class BaseTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         self.test_client = self.app.test_client()
+        self.category_url = url_for('api/categories.categorylistresource', _external=True)
+        self.category_name = "soup"
         self.test_username = 'kevin'
         self.test_user_password = 'P@ssword1'
         self.test_email = "samoeikev@gmail.com"

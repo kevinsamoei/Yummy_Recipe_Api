@@ -10,7 +10,7 @@ class AuthTestCase(BaseTestCase):
     def setUp(self):
         """Set up test variables."""
         super(AuthTestCase, self).setUp()
-        self.register_url = url_for('api/auth.registeruser', _external=True)
+        self.register_url = url_for('api/auth.registeruser', _external=True) # 'api/auth/register/
         self.login_url = url_for('api/auth.loginuser', _external=True)
         self.logout_url = url_for('api/auth.logoutuser', _external=True)
         self.reset_url = url_for('api/auth.sendresetpassword', _external=True)
@@ -42,7 +42,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_invalid_inputs(self):
         """Test register when an input field is invalid"""
-        data_2 = {"username": "kev", "password": "k", "email": self.test_email}
+        data_2 = {"username": "kev", "password": "k", "email": "kevin@gmail.com"}
         response_2 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_2),
@@ -54,7 +54,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_password_has_no_number(self):
         """Test if register fails when password has no num"""
-        data_3 = {"username": "kev", "password": "P@ssword", "email": self.test_email}
+        data_3 = {"username": "kev", "password": "P@ssword", "email": "kevin@gmail.com"}
         response_3 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_3),
@@ -67,7 +67,7 @@ class AuthTestCase(BaseTestCase):
     def test_register_with_long_password(self):
         """Test if register fails when a long password is given"""
         data_4 = {"username": "kev", "password": "P@ssword1ThereisnothingsimpleaboutcreatingeffectiveJavaScript code",
-                  "email": self.test_email}
+                  "email": "kevin@gmail.com"}
         response_4 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_4),
@@ -79,7 +79,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_no_uppercase_letter_pwd(self):
         """Password must contain an uppercase letter"""
-        data_5 = {"username": "kev", "password": "p@ssword1", "email": self.test_email}
+        data_5 = {"username": "kev", "password": "p@ssword1", "email": "kevin@gmail.com"}
         response_5 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_5),
@@ -91,7 +91,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_with_no_symbol_in_password(self):
         """Password must have at least on symbol"""
-        data_6 = {"username": "kev", "password": "Password1", "email": self.test_email}
+        data_6 = {"username": "kev", "password": "Password1", "email": "kevin@gmail.com"}
         response_6 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_6),
@@ -103,7 +103,7 @@ class AuthTestCase(BaseTestCase):
 
     def test_register_when_password_has_no_lowercase(self):
         """Password must have at least one lowercase letter"""
-        data_7 = {"username": "kev", "password": "P@SSWORD1", "email": self.test_email}
+        data_7 = {"username": "kev", "password": "P@SSWORD1", "email": "kevin@gmail.com"}
         response_7 = self.test_client.post(
             self.register_url,
             data=json.dumps(data_7),
@@ -205,29 +205,8 @@ class AuthTestCase(BaseTestCase):
         self.assertEqual(logout_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response, {'message': 'Logged out. log in again'})
 
-    def test_send_reset_with_wrong_username(self):
-        data = {"username": "nonuser", "email": self.test_email}
-        response = self.client.post(
-            self.reset_url,
-            data=json.dumps(data),
-            content_type='application/json'
-        )
-        response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {'message': 'Wrong username or email'})
-
-    def test_send_reset_with_no_data(self):
-        data = {}
-        response = self.client.post(
-            self.reset_url,
-            data=json.dumps(data),
-            content_type='application/json'
-        )
-        response_data = json.loads(response.get_data(as_text=True))
-        self.assertEqual(response_data, {'message': 'No input data provided'})
-        self.assertEqual(response.status_code, 400)
-
     def test_change_password(self):
-        data = {"password": "P@ssw0rd"}
+        data = {"new_password": "P@ssw0rd"}
         response = self.client.post(
             'api/auth/change-password/',
             data=json.dumps(data),

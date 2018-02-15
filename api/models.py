@@ -37,8 +37,8 @@ class AddUpdateDelete():
         :param ctx:
         :return: True if pattern is matched otherwise return false
         """
-        if re.search(r"^[a-zA-Z0-9]", ctx) is None:
-            return "Must contain no spaces and should be a string", False
+        if re.search(r'[a-zA-Z0-9]', ctx) is None:
+            return "No input data provided", False
         if '  ' in ctx:
             return "The parameter has more than one spaces in: {}".format(ctx), False
         return "", True
@@ -49,7 +49,7 @@ class User(db.Model, AddUpdateDelete):
     A model to create a user object
     """
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120))
+    email = db.Column(db.String(120), unique=True, nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
     hashed_password = db.Column(db.String(120), nullable=False)
     created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
@@ -145,10 +145,10 @@ class Recipe(db.Model, AddUpdateDelete):
                                                               cascade="all, delete-orphan"))
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
-    def __init__(self, title, body, category, user):
+    def __init__(self, title, body, category_id, user):
         self.title = title
         self.body = body
-        self.category = category
+        self.category_id = category_id
         self.user = user
 
     @classmethod
@@ -171,8 +171,8 @@ class Recipe(db.Model, AddUpdateDelete):
         :param ctx:
         :return: True if pattern is matched otherwise return false
         """
-        if re.search(r"^[a-zA-Z0-9]", ctx) is None:
-            return "Must contain no spaces and should be a string", False
+        if re.search(r'[a-zA-Z0-9]', ctx) is None:
+            return "No input data provided", False
         if '  ' in ctx:
             return "The parameter category has more than one spaces in: {}".format(ctx), False
         return "", True
