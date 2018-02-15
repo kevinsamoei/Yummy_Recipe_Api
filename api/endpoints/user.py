@@ -3,7 +3,7 @@ import jwt
 import re
 import os
 
-from flask import Blueprint, request, jsonify, make_response, abort
+from flask import Blueprint, request, jsonify, make_response, abort, Flask
 from flask_restful import Api, Resource
 from flask_mail import Message, Mail
 # from flask_mail import Mail
@@ -15,9 +15,9 @@ from api import status
 from api.auth import token_required
 from api.validate_json import validate_json
 
-api_bp = Blueprint('api/auth', __name__)
+app = Flask(__name__)
 
-from run import app
+api_bp = Blueprint('api/auth', __name__)
 
 app_context = app.app_context()
 app_context.push()
