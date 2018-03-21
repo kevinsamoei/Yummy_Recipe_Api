@@ -104,7 +104,7 @@ class RecipeResource(Resource):
             return {"Error": "A recipe with that Id does not exist"}, 404
         recipe_dict = request.get_json(force=True)
         if 'title' in recipe_dict:
-            recipe_title = recipe_dict['title'].lower().strip()
+            recipe_title = recipe_dict['title'].strip()
             error, validate_title = recipe.validate_recipe(ctx=recipe_title)
             if validate_title:
                 if Recipe.is_unique(id=id, title=recipe_title, user_id=current_user.id):
@@ -126,7 +126,7 @@ class RecipeResource(Resource):
             abort(status.HTTP_400_BAD_REQUEST, dumped_errors)
 
         recipe.update()
-        return self.get(id), 200, {"Message": "Recipe successfully edited"}
+        return {"message": "Recipe successfully edited"}, 200
 
     @token_required
     def delete(current_user, self, id):
@@ -199,12 +199,13 @@ class RecipeListResource(Resource):
                   default: Prepare it
         """
 
-        per_page = request.args.get('limit', default=5, type=int)
+        per_page = request.args.get('limit', default=9, type=int)
         page = request.args.get('page', default=1, type=int)
+        category = Category.query.filter_by(id=category_id).first()
 
         pagination_helper = Pagination(
             request,
-            query=Recipe.query.filter_by(category_id=category_id, user_id=current_user.id),
+            query=Recipe.query.filter_by(category_id=category_id, user_id=current_user.id).order_by("id desc"),
             resource_for_url='api.recipelistresource',
             results_per_page=per_page,
             page=page,
@@ -219,8 +220,8 @@ class RecipeListResource(Resource):
                 query=Recipe.query.filter(
                     Recipe.user_id == current_user.id,
                     Recipe.category_id == category_id,
-                    (Recipe.title.contains(search.lower())) |
-                    (Recipe.body.contains(search.lower()))),
+                    (Recipe.title.ilike("%" + search + "%")) |
+                    (Recipe.body.contains(search.title()))),
                 resource_for_url='api.recipelistresource',
                 key_name='results',
                 page=page,
@@ -285,11 +286,11 @@ class RecipeListResource(Resource):
         request_dict = request.get_json()
 
         if not request_dict:
-            abort(status.HTTP_400_BAD_REQUEST, "No output data provided")
+            abort(status.HTTP_400_BAD_REQUEST, "All fields are required")
         errors = recipe_schema.validate(request_dict)
         if errors:
             abort(status.HTTP_400_BAD_REQUEST, errors)
-        recipe_title = request_dict['title'].lower()
+        recipe_title = request_dict['title'].title()
         recipe_body = request_dict['body'].strip()
         if not Recipe.is_unique(id=0, title=recipe_title, user_id=current_user.id):
             abort(status.HTTP_409_CONFLICT, 'A recipe with the same title already exists')
@@ -308,10 +309,8 @@ class RecipeListResource(Resource):
                 user=current_user
             )
             recipe.add(recipe)
-            query = Recipe.query.get(recipe.id)
-            result = recipe_schema.dump(query).data
-
-            return make_response(jsonify(result), status.HTTP_201_CREATED)
+            response = "Recipe uccessfully added!"
+            return make_response(jsonify(response), status.HTTP_201_CREATED)
         else:
             abort(400, "A category with Id {0} does not exist".format(category_id))
 

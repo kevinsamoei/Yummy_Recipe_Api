@@ -30,9 +30,11 @@ class CategorySchema(ma.Schema):
     """
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True, validate=validate.Length(3))
-    # url = ma.URLFor('api/categories.categoryresource', id='<id>', _external=True)
-    # recipes = fields.Nested('RecipeSchema', many=True,
-    #                         exclude=('category',))
+    url = ma.URLFor('api/categories.categoryresource', id='<id>', _external=True)
+    created_timestamp = ma.DateTime(format("rfc"), dump_only=True)
+    modified_timestamp = ma.DateTime(dump_only=True)
+    recipes = fields.Nested('RecipeSchema', many=True,
+                            exclude=('category',))
 
 
 class RecipeSchema(ma.Schema):
@@ -45,8 +47,8 @@ class RecipeSchema(ma.Schema):
     category_id = fields.Integer(dump_only=True)
     user_id = fields.Integer(dump_only=True)
     # url = ma.URLFor('api.reciperesource', id='<id>', _external=True)
-    # category = fields.Nested(CategorySchema, only=['id', 'url', 'name'],
-    #                          required=True)
+    category = fields.Nested(CategorySchema, only=['name'],
+                             dump_only=True)
 
     @pre_load
     def process_category(self, data):

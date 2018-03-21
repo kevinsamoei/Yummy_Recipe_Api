@@ -166,24 +166,23 @@ class LoginUser(Resource):
         auth = request.get_json()
         try:
             if not auth or not auth['username'] or not auth['password']:
-                abort(status.HTTP_400_BAD_REQUEST, 'No data provided')
+                abort(status.HTTP_400_BAD_REQUEST, 'All fields are required')
         except KeyError as e:
-            response = {"error": str(e)}
-            abort(status.HTTP_400_BAD_REQUEST, response)
+            abort(status.HTTP_400_BAD_REQUEST, str(e))
 
         user = User.query.filter_by(username=auth['username']).first()
 
         if not user:
-            abort(status.HTTP_401_UNAUTHORIZED, 'No user with that name exists')
+            return {'error': 'No user with that name exists'}, 400
 
         if user.verify_password(auth['password']):
             token = jwt.encode(
                 {'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
                 'topsecret')
 
-            return jsonify({"token": token.decode('UTF-8')})
+            return jsonify({"token": token.decode('UTF-8'), "username": user.username})
 
-        abort(401, 'Could not verify. Wrong username or password')
+        return {'error': 'Could not verify. Wrong password'}, 401
 
 
 class LogoutUser(Resource):
@@ -244,18 +243,18 @@ class SendResetPassword(Resource):
         request_dict = request.get_json()
 
         if not request_dict:
-            resp = {'message': 'No input data provided'}
+            resp = {'error': 'No input data provided'}
             return resp, status.HTTP_400_BAD_REQUEST
 
         try:
             email = request_dict['email']
-        except Exception as e:
-            response = {"error": str(e)}
+        except Exception:
+            response = {"error": 'Missing field'}
             return response, status.HTTP_400_BAD_REQUEST
 
         user = User.query.filter_by(email=email).first()
         if not user:
-            abort(400, "Wrong username or email")
+            return {'error': "Invalid email"}, 400
 
         chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
 

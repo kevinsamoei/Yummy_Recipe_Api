@@ -3,6 +3,7 @@ import datetime
 import re
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from passlib.apps import custom_app_context as password_context
 
 db = SQLAlchemy()
@@ -110,6 +111,8 @@ class Category(db.Model, AddUpdateDelete):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    created_timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
+    modified_timestamp = db.Column(db.DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
 
     def __init__(self, name, user_id):
         self.name = name
@@ -120,7 +123,7 @@ class Category(db.Model, AddUpdateDelete):
         """
         Ensure that a category to be created is unique
         """
-        existing_category = cls.query.filter_by(name=name, user_id=user_id).first()
+        existing_category = cls.query.filter(func.lower(cls.name) == func.lower(name), cls.user_id == user_id).first()
         if existing_category is None:
             return True
         else:
@@ -156,7 +159,7 @@ class Recipe(db.Model, AddUpdateDelete):
         """
         Ensure the recipe to be created will be unique
         """
-        existing_recipe = cls.query.filter_by(title=title, user_id=user_id).first()
+        existing_recipe = cls.query.filter(func.lower(cls.title) == func.lower(title), cls.user_id == user_id).first()
         if existing_recipe is None:
             return True
         else:

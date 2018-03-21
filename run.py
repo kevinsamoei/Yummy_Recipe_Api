@@ -2,8 +2,11 @@
 import os
 from flask import redirect
 from app import create_app
+from flask_cors import CORS
 
 app = create_app('config')
+
+CORS(app)
 
 
 @app.route('/')

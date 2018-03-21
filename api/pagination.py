@@ -48,6 +48,7 @@ class Pagination:
         return ({
             self.key_name: dumped_objects,
             'previous': previous_page_url,
+            'pages': paginated_objects.pages,
             'next': next_page_url,
             'count': paginated_objects.total
         })

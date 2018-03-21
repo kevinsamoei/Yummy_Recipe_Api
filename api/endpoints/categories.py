@@ -91,28 +91,22 @@ class CategoryResource(Resource):
         category = Category.query.filter_by(id=id, user_id=current_user.id).first()
         if not category:
             return {"Error": "A category with that Id does not exist"}, 404
-        category_dict = request.get_json()
-        try:
-            category_name = category_dict['name'].lower().strip()
-        except KeyError as e:
-            abort(400, {"error": str(e)})
-        if not category_dict:
-            abort(status.HTTP_400_BAD_REQUEST, 'No input data provided')
-        errors = category_schema.validate(category_dict)
-        if errors:
-            abort(status.HTTP_400_BAD_REQUEST, errors)
-        error, validated_name = Category.validate_data(ctx=category_name)
-        if validated_name:
-            if 'name' in category_dict:
-                category_name = category_name
+        category_dict = request.get_json(force=True)
+        if 'name' in category_dict:
+            category_name = category_dict['name'].strip()
+            errors = category_schema.validate(category_dict)
+            if errors:
+                abort(status.HTTP_400_BAD_REQUEST, errors)
+            error, validated_name = Category.validate_data(ctx=category_name)
+            if validated_name:
                 if Category.is_unique(id=id, name=category_name, user_id=current_user.id):
                     category.name = category_name
                 else:
                     abort(status.HTTP_409_CONFLICT, 'A category with the same name already exists')
-            category.update()
-            return self.get(id)
-        else:
-            return {"errors": error}
+            else:
+                return {"errors": error}
+        category.update()
+        return {'message': 'Category successfully edited!'}, 201
 
     @token_required
     def delete(current_user, self, id):
@@ -139,7 +133,7 @@ class CategoryResource(Resource):
             return {"error": "No category with that id {0} exists".format(id)}, 404
 
         category.delete(category)
-        response = make_response(jsonify({"message": "successfully deleted"}), status.HTTP_200_OK)
+        response = make_response(jsonify({"message": "Successfully deleted"}), status.HTTP_200_OK)
         return response
 
 
@@ -177,12 +171,12 @@ class CategoryListResource(Resource):
                   type: json
                   default: Soup
         """
-        per_page = request.args.get('limit', default=5, type=int)
+        per_page = request.args.get('limit', default=6, type=int)
         page = request.args.get('page', default=1, type=int)
 
         pagination_helper = Pagination(
             request,
-            query=Category.query.filter_by(user_id=current_user.id),
+            query=Category.query.filter_by(user_id=current_user.id).order_by("id desc"),
             resource_for_url='api/categories.categorylistresource',
             key_name='results',
             page=page,
@@ -196,7 +190,7 @@ class CategoryListResource(Resource):
                 request,
                 query=Category.query.filter(
                     Category.user_id == current_user.id,
-                    Category.name.contains(search.lower())),
+                    Category.name.ilike("%" + search + "%")),
                 resource_for_url='api/categories.categorylistresource',
                 key_name='results',
                 page=page,
@@ -205,13 +199,14 @@ class CategoryListResource(Resource):
             )
             results = categories.paginate_query()
             if len(results['results']) <= 0:
-                return jsonify({"Error": "No catgory match found for search term"})
-            return results, status.HTTP_404_NOT_FOUND
+                return jsonify({"error": "No category match found for search term"})
+            return results, 200
 
         result = pagination_helper.paginate_query()
         if len(result['results']) <= 0:
-            return jsonify({"Error": "No categories found"})
-        return result, status.HTTP_302_FOUND
+            res = {"error": "No categories found"}
+            return res, 400
+        return result, status.HTTP_200_OK
 
     @validate_json
     @token_required
@@ -247,23 +242,22 @@ class CategoryListResource(Resource):
         """
         request_dict = request.get_json()
         if not request_dict:
-            abort(status.HTTP_400_BAD_REQUEST, 'No output data provided')
+            return {'message': 'No output data provided'}, 400
         errors = category_schema.validate(request_dict)
         if errors:
-            abort(status.HTTP_400_BAD_REQUEST, errors)
+            return {'message': errors}, 400
 
-        category_name = request_dict['name'].lower().strip()
+        category_name = request_dict['name'].strip()
         if not Category.is_unique(id=0, name=category_name, user_id=current_user.id):
-            abort(status.HTTP_409_CONFLICT, "A category with the same name already exists")
+            return {'message': 'A category with the same name already exists'}, 400
         error, validated_name = Category.validate_data(ctx=category_name)
         if validated_name:
             category = Category(category_name, user_id=current_user.id)
             category.add(category)
-            query = Category.query.get(category.id)
-            result = category_schema.dump(query).data
+            result = {'message': 'Category successfully added!'}
             return result, status.HTTP_201_CREATED
         else:
-            abort(400, error)
+            return {'message': error}, 400
 
 
 api.add_resource(CategoryListResource, '/')
