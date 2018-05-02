@@ -1,12 +1,12 @@
 # coding=utf-8
+import os
 from flask import redirect
 from app import create_app
+from flask_cors import CORS
 
 app = create_app('config')
-app.config["Swagger"] = {
-    "title": "Yummy Recipe App",
-    "uiversion": 2,
-}
+
+CORS(app)
 
 
 @app.route('/')
@@ -15,6 +15,4 @@ def home():
 
 
 if __name__ == '__main__':
-    app.run(host=app.config['HOST'],
-            port=app.config['PORT'],
-            debug=app.config['DEBUG'])
+    app.run(debug=app.config['DEBUG'])

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c886d7d745ed
+Revision ID: 7970182fe475
 Revises: 
-Create Date: 2017-12-20 10:36:19.129077
+Create Date: 2018-03-14 19:32:03.320658
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c886d7d745ed'
+revision = '7970182fe475'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,19 +27,22 @@ def upgrade():
     )
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('username', sa.String(length=50), nullable=False),
     sa.Column('hashed_password', sa.String(length=120), nullable=False),
     sa.Column('created_timestamp', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
     op.create_table('category',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=150), nullable=True),
+    sa.Column('name', sa.String(length=150), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('created_timestamp', sa.DateTime(), nullable=True),
+    sa.Column('modified_timestamp', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('recipe',
     sa.Column('id', sa.Integer(), nullable=False),

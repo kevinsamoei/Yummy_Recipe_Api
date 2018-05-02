@@ -102,3 +102,6 @@ ENV/
 
 # pycharm and vscode
 .idea/
+
+# ds store
+.DS_Store
